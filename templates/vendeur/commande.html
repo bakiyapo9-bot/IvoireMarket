@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sous-commande — Espace vendeur — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="vendeur" data-active="commandes" data-title="Traiter la sous-commande">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content" id="root"></main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { esc, fmt } = IM;
+    const all = IM.subOrders(1); // le vendeur ne peut ouvrir que SES sous-commandes (sinon 404 côté Django)
+    const o = all.find((x) => x.sc.id === Number(IM.param("id"))) || all[0];
+    const zone = IM.getZone(o.commande.zone_id);
+    /* Transitions autorisées côté vendeur. Django : machine à états + journal (HistoriqueStatut). */
+    const NEXT = { pending: null, confirmed: ["processing", "Commencer la préparation", "bi-box-seam"], processing: ["shipped", "Remettre au livreur", "bi-truck"] };
+    const history = [
+      { date: o.commande.date, label: "Sous-commande créée", by: "Système" },
+      ...(o.commande.paiement_statut === "paid" ? [{ date: o.commande.date, label: "Paiement confirmé par le prestataire", by: "Système" }] : []),
+    ];
+
+    function render() {
+      const next = NEXT[o.sc.statut];
+      document.getElementById("root").innerHTML = `
+      <a href="commandes.html" class="small"><i class="bi bi-arrow-left"></i> Toutes les commandes</a>
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-3">
+        <div><h2 class="h5 fw-bold mb-0">Sous-commande #${o.sc.id}</h2><small class="text-muted">Commande ${esc(o.commande.reference)} · ${esc(o.commande.date)}</small></div>
+        <div class="d-flex gap-2 align-items-center">${IM.statusBadge(o.sc.statut)}
+          <button class="btn btn-sm btn-light" onclick="window.print()"><i class="bi bi-printer me-1"></i>Bon de livraison</button></div>
+      </div>
+      ${o.commande.paiement_statut === "pending" ? `<div class="alert alert-warning small"><i class="bi bi-hourglass-split me-1"></i>Paiement en attente : ne préparez pas la commande avant sa confirmation.</div>` : ""}
+      <div class="row g-3">
+        <div class="col-xl-8">
+          <div class="card table-card mb-3">
+            <div class="card-header">Articles à préparer</div>
+            <div class="card-body table-responsive">
+              <table class="table mb-0">
+                <thead><tr><th>Produit</th><th>Variante</th><th>Qté</th><th>Prix unitaire</th><th class="text-end">Total</th></tr></thead>
+                <tbody>${o.sc.lignes.map((l) => `<tr><td><div class="d-flex gap-2 align-items-center">${IM.thumb(IM.getProduct(l.produit_id), "xs")}<span class="small">${esc(l.nom)}</span></div></td>
+                  <td class="small">${esc(l.variante || "—")}</td><td>${l.quantite}</td><td class="small">${fmt(l.prix_unitaire)}</td><td class="text-end fw-semibold">${fmt(l.quantite * l.prix_unitaire)}</td></tr>`).join("")}</tbody>
+              </table>
+            </div>
+            <div class="card-footer bg-white small text-muted"><i class="bi bi-lock me-1"></i>Les prix et quantités d'une commande payée ne sont pas modifiables. Pour tout changement, contactez le service client.</div>
+          </div>
+          <div class="card">
+            <div class="card-header">Historique</div>
+            <div class="card-body"><ul class="timeline small mb-0">${history.map((h) => `<li class="done"><span class="tl-dot"><i class="bi bi-check"></i></span><strong>${esc(h.label)}</strong><div class="text-muted">${esc(h.date)} · ${esc(h.by)}</div></li>`).join("")}</ul></div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card mb-3">
+            <div class="card-header">Action</div>
+            <div class="card-body">
+              ${IM.timeline(o.sc.statut)}
+              <div class="d-grid gap-2 mt-3">
+                ${next ? `<button class="btn btn-primary" data-next="${next[0]}"><i class="bi ${next[2]} me-1"></i>${next[1]}</button>` : ""}
+                ${o.sc.statut === "pending" ? `<button class="btn btn-success" data-next="confirmed"><i class="bi bi-check-lg me-1"></i>Confirmer la commande</button>` : ""}
+                ${["pending", "confirmed"].includes(o.sc.statut) ? `<button class="btn btn-outline-danger" data-next="cancelled">Refuser (rupture…)</button>` : ""}
+                ${["shipped", "delivered", "cancelled"].includes(o.sc.statut) ? `<div class="small text-muted text-center">Aucune action vendeur requise.</div>` : ""}
+              </div>
+            </div>
+          </div>
+          <div class="card mb-3">
+            <div class="card-header">Revenus de cette vente</div>
+            <div class="card-body small">
+              <div class="d-flex justify-content-between"><span>Montant de la vente</span><span>${fmt(o.montant)}</span></div>
+              <div class="d-flex justify-content-between text-danger"><span>Commission (5 %)</span><span>-${fmt(o.commission)}</span></div>
+              <hr class="my-2"><div class="d-flex justify-content-between fw-bold"><span>Revenu vendeur</span><span class="text-green">${fmt(o.net)}</span></div>
+              <div class="text-muted mt-2">Versé après confirmation de la livraison.</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Livraison</div>
+            <div class="card-body small">
+              <div class="fw-semibold">${esc(o.commande.client)}</div>
+              <div class="text-muted">${esc(zone.nom)}</div>
+              <div class="mt-2"><i class="bi bi-truck text-orange me-1"></i>${IM.getLivreur(o.sc.livreur_id) ? "Livreur : " + esc(IM.getLivreur(o.sc.livreur_id).nom) : "Livreur affecté par la plateforme à l'expédition"}</div>
+              <div class="text-muted mt-1">Adresse complète visible par le livreur uniquement.</div>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-next]");
+      if (!b) return;
+      if (b.dataset.next === "cancelled" && !confirm("Refuser cette sous-commande ? Le client sera remboursé et notifié.")) return;
+      o.sc.statut = b.dataset.next;
+      history.push({ date: new Date().toLocaleString("fr-FR"), label: "Statut → " + IM.STATUS[o.sc.statut], by: "Kouadio Serge (vendeur)" });
+      IM.toast(`Statut mis à jour : ${IM.STATUS[o.sc.statut]}. Le client a été notifié.`, "success");
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

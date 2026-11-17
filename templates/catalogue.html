@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Catalogue — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
+</head>
+<body data-root="">
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <nav aria-label="Fil d'Ariane">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Accueil</a></li>
+        <li class="breadcrumb-item active" id="crumb-current">Catalogue</li>
+      </ol>
+    </nav>
+
+    <!--
+      Formulaire GET : Django lit request.GET (q, categorie, sous_categorie, prix_min,
+      prix_max, boutique, promo, en_stock, tri, page) pour filtrer le QuerySet.
+    -->
+    <form id="filter-form" method="get" action="catalogue.html">
+      <input type="hidden" name="q" id="f-q">
+      <div class="row g-4 mt-1">
+        <!-- Filtres -->
+        <aside class="col-lg-3">
+          <button class="btn btn-outline-secondary w-100 d-lg-none mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#filters">
+            <i class="bi bi-funnel me-1"></i> Filtres
+          </button>
+          <div class="collapse d-lg-block" id="filters">
+            <div class="card filter-card sticky-filters">
+              <div class="card-body">
+                <h6 class="fw-semibold">Catégorie</h6>
+                <select class="form-select form-select-sm mb-2" name="categorie" id="f-categorie" aria-label="Catégorie">
+                  <option value="">Toutes les catégories</option>
+                </select>
+                <select class="form-select form-select-sm mb-3" name="sous_categorie" id="f-sous" aria-label="Sous-catégorie">
+                  <option value="">Toutes les sous-catégories</option>
+                </select>
+
+                <h6 class="fw-semibold mt-3">Prix (FCFA)</h6>
+                <div class="d-flex gap-2 mb-2">
+                  <input type="number" class="form-control form-control-sm" name="prix_min" id="f-min" placeholder="Min" min="0" step="500" aria-label="Prix minimum">
+                  <input type="number" class="form-control form-control-sm" name="prix_max" id="f-max" placeholder="Max" min="0" step="500" aria-label="Prix maximum">
+                </div>
+                <div class="d-flex flex-wrap gap-1 mb-3">
+                  <button type="button" class="btn btn-light btn-sm" data-price="0-10000">&lt; 10 000</button>
+                  <button type="button" class="btn btn-light btn-sm" data-price="10000-50000">10 – 50 000</button>
+                  <button type="button" class="btn btn-light btn-sm" data-price="50000-">&gt; 50 000</button>
+                </div>
+
+                <h6 class="fw-semibold mt-3">Vendeur</h6>
+                <div id="f-shops" class="d-grid gap-1 mb-3"></div>
+
+                <h6 class="fw-semibold mt-3">Disponibilité</h6>
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="en_stock" value="1" id="f-stock">
+                  <label class="form-check-label" for="f-stock">En stock uniquement</label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" name="promo" value="1" id="f-promo">
+                  <label class="form-check-label" for="f-promo">En promotion</label>
+                </div>
+
+                <div class="d-grid gap-2">
+                  <button class="btn btn-primary btn-sm" type="submit">Appliquer</button>
+                  <a href="catalogue.html" class="btn btn-link btn-sm text-muted">Réinitialiser les filtres</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Résultats -->
+        <section class="col-lg-9">
+          <div class="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-3">
+            <div>
+              <h1 class="h4 fw-bold mb-0" id="cat-title">Tous les produits</h1>
+              <small class="text-muted" id="result-count"></small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+              <label for="f-tri" class="small text-muted text-nowrap">Trier par</label>
+              <select class="form-select form-select-sm" name="tri" id="f-tri">
+                <option value="pertinence">Pertinence</option>
+                <option value="popularite">Popularité</option>
+                <option value="prix_asc">Prix croissant</option>
+                <option value="prix_desc">Prix décroissant</option>
+                <option value="note">Mieux notés</option>
+              </select>
+            </div>
+          </div>
+          <div id="active-filters" class="d-flex flex-wrap gap-2 mb-3"></div>
+
+          <!-- Django : {% for produit in page_obj %} {% include "partials/_product_card.html" %} {% empty %} ... -->
+          <div class="row g-3" id="product-grid"></div>
+
+          <nav class="mt-4" aria-label="Pagination"><ul class="pagination justify-content-center" id="pagination"></ul></nav>
+        </section>
+      </div>
+    </form>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../static/js/data.js"></script>
+  <script src="../static/js/app.js"></script>
+  <script>
+    const { D, param, esc } = IM;
+    const PER_PAGE = 9;
+    const form = document.getElementById("filter-form");
+    const P = {
+      q: (param("q") || "").trim(), categorie: param("categorie") || "", sous: param("sous_categorie") || "",
+      min: param("prix_min") || "", max: param("prix_max") || "", boutiques: new URLSearchParams(location.search).getAll("boutique"),
+      stock: param("en_stock") === "1", promo: param("promo") === "1", tri: param("tri") || "pertinence", page: Number(param("page") || 1),
+    };
+
+    /* --- Remplissage des filtres --- */
+    const catSel = document.getElementById("f-categorie");
+    const sousSel = document.getElementById("f-sous");
+    D.categories.filter((c) => c.actif).forEach((c) => catSel.add(new Option(c.nom, c.id)));
+    function fillSous() {
+      sousSel.length = 1;
+      const c = IM.getCategory(catSel.value);
+      (c?.sous_categories || []).forEach((s) => sousSel.add(new Option(s.nom, s.id)));
+      sousSel.disabled = !c;
+    }
+    catSel.value = P.categorie; fillSous(); sousSel.value = P.sous;
+    document.getElementById("f-q").value = P.q;
+    document.getElementById("f-min").value = P.min;
+    document.getElementById("f-max").value = P.max;
+    document.getElementById("f-stock").checked = P.stock;
+    document.getElementById("f-promo").checked = P.promo;
+    document.getElementById("f-tri").value = P.tri;
+    document.getElementById("f-shops").innerHTML = D.boutiques.filter((b) => b.statut === "active").map((b) => `
+      <div class="form-check">
+        <input class="form-check-input" type="checkbox" name="boutique" value="${b.id}" id="shop-${b.id}" ${P.boutiques.includes(String(b.id)) ? "checked" : ""}>
+        <label class="form-check-label" for="shop-${b.id}">${esc(b.nom)}</label>
+      </div>`).join("");
+
+    catSel.addEventListener("change", () => { fillSous(); sousSel.value = ""; form.requestSubmit(); });
+    form.querySelectorAll("#f-sous, #f-tri, #f-stock, #f-promo, [name=boutique]").forEach((el) => el.addEventListener("change", () => form.requestSubmit()));
+    document.querySelectorAll("[data-price]").forEach((b) => b.addEventListener("click", () => {
+      const [a, z] = b.dataset.price.split("-");
+      document.getElementById("f-min").value = a; document.getElementById("f-max").value = z; form.requestSubmit();
+    }));
+    // Ne pas envoyer les champs vides dans l'URL
+    form.addEventListener("formdata", (e) => { for (const [k, v] of [...e.formData.entries()]) if (v === "" || (k === "tri" && v === "pertinence")) e.formData.delete(k); });
+
+    /* --- Filtrage (sera fait côté serveur avec le QuerySet Django) --- */
+    let list = D.produits.filter((p) => p.statut === "active" && IM.getShop(p.boutique_id)?.statut === "active");
+    if (P.q) {
+      const q = P.q.toLowerCase();
+      list = list.filter((p) => p.nom.toLowerCase().includes(q) || IM.getShop(p.boutique_id).nom.toLowerCase().includes(q) || IM.getCategory(p.categorie_id).nom.toLowerCase().includes(q));
+    }
+    if (P.categorie) list = list.filter((p) => p.categorie_id === Number(P.categorie));
+    if (P.sous) list = list.filter((p) => p.sous_categorie_id === Number(P.sous));
+    if (P.min) list = list.filter((p) => IM.price(p) >= Number(P.min));
+    if (P.max) list = list.filter((p) => IM.price(p) <= Number(P.max));
+    if (P.boutiques.length) list = list.filter((p) => P.boutiques.includes(String(p.boutique_id)));
+    if (P.stock) list = list.filter((p) => p.stock > 0);
+    if (P.promo) list = list.filter((p) => p.prix_promo != null);
+    const sorters = {
+      popularite: (a, b) => b.ventes - a.ventes, prix_asc: (a, b) => IM.price(a) - IM.price(b),
+      prix_desc: (a, b) => IM.price(b) - IM.price(a), note: (a, b) => b.note - a.note,
+    };
+    if (sorters[P.tri]) list.sort(sorters[P.tri]);
+
+    /* --- Titre & filtres actifs --- */
+    const cat = IM.getCategory(P.categorie);
+    const title = P.q ? `Résultats pour « ${esc(P.q)} »` : P.promo ? "Promotions" : cat ? cat.nom : "Tous les produits";
+    document.getElementById("cat-title").innerHTML = title;
+    document.getElementById("crumb-current").innerHTML = title;
+    document.title = title.replace(/<[^>]+>/g, "") + " — IvoireMarket";
+    document.getElementById("result-count").textContent = `${list.length} produit${list.length > 1 ? "s" : ""} trouvé${list.length > 1 ? "s" : ""}`;
+
+    const chips = [];
+    const without = (key, value) => { const u = new URLSearchParams(location.search); if (value) { const vals = u.getAll(key).filter((v) => v !== value); u.delete(key); vals.forEach((v) => u.append(key, v)); } else u.delete(key); u.delete("page"); return "catalogue.html?" + u; };
+    if (P.q) chips.push([`Recherche : ${esc(P.q)}`, without("q")]);
+    if (cat) chips.push([cat.nom, without("categorie")]);
+    if (P.min || P.max) chips.push([`Prix : ${P.min || 0} – ${P.max || "∞"}`, without("prix_min").replace(/&?prix_max=[^&]*/, "")]);
+    P.boutiques.forEach((id) => chips.push([IM.getShop(id)?.nom, without("boutique", id)]));
+    if (P.promo) chips.push(["En promotion", without("promo")]);
+    if (P.stock) chips.push(["En stock", without("en_stock")]);
+    document.getElementById("active-filters").innerHTML = chips.map(([l, h]) =>
+      `<a href="${h}" class="badge rounded-pill bg-orange-soft text-orange border border-warning-subtle px-3 py-2 fw-medium">${l} <i class="bi bi-x"></i></a>`).join("");
+
+    /* --- Pagination --- */
+    const pages = Math.max(1, Math.ceil(list.length / PER_PAGE));
+    const page = Math.min(Math.max(1, P.page), pages);
+    const grid = document.getElementById("product-grid");
+    grid.innerHTML = list.length
+      ? list.slice((page - 1) * PER_PAGE, page * PER_PAGE).map((p) => IM.productCard(p, "col-6 col-md-4")).join("")
+      : `<div class="col-12"><div class="empty-state card"><i class="bi bi-search"></i><h5 class="mt-3">Aucun produit ne correspond à votre recherche</h5>
+         <p>Essayez d'élargir vos filtres ou de modifier les mots-clés.</p><a href="catalogue.html" class="btn btn-primary">Voir tout le catalogue</a></div></div>`;
+    const pageUrl = (n) => { const u = new URLSearchParams(location.search); u.set("page", n); return "catalogue.html?" + u; };
+    document.getElementById("pagination").innerHTML = pages < 2 ? "" :
+      `<li class="page-item ${page === 1 ? "disabled" : ""}"><a class="page-link" href="${pageUrl(page - 1)}">«</a></li>` +
+      Array.from({ length: pages }, (_, i) => `<li class="page-item ${i + 1 === page ? "active" : ""}"><a class="page-link" href="${pageUrl(i + 1)}">${i + 1}</a></li>`).join("") +
+      `<li class="page-item ${page === pages ? "disabled" : ""}"><a class="page-link" href="${pageUrl(page + 1)}">»</a></li>`;
+  </script>
+</body>
+</html>

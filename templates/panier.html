@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mon panier — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
+</head>
+<body data-root="">
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <nav aria-label="Fil d'Ariane">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Accueil</a></li>
+        <li class="breadcrumb-item active">Panier</li>
+      </ol>
+    </nav>
+    <h1 class="h3 fw-bold my-3">Mon panier <small class="text-muted fs-6 fw-normal" id="cart-sub"></small></h1>
+
+    <div class="row g-4" id="cart-root">
+      <div class="col-lg-8" id="cart-groups"></div>
+      <div class="col-lg-4">
+        <div class="card summary-card">
+          <div class="card-body">
+            <h2 class="h6 fw-bold mb-3">Récapitulatif</h2>
+            <div class="d-flex justify-content-between small mb-2"><span>Sous-total (<span id="sum-count">0</span> articles)</span><span id="sum-subtotal"></span></div>
+            <div class="d-flex justify-content-between small mb-2"><span>Livraison</span><span class="text-muted">Calculée à l'étape suivante</span></div>
+            <hr>
+            <div class="d-flex justify-content-between fw-bold fs-5"><span>Total</span><span class="text-orange" id="sum-total"></span></div>
+            <div class="alert alert-warning small mt-3 mb-0 d-none" id="stock-alert"><i class="bi bi-exclamation-triangle me-1"></i>Certains articles ne sont plus disponibles en quantité suffisante. Ajustez votre panier pour continuer.</div>
+            <div class="alert bg-green-soft small mt-3 mb-0 border-0" id="split-info"></div>
+            <a href="checkout.html" class="btn btn-primary w-100 btn-lg mt-3" id="btn-checkout">Passer la commande <i class="bi bi-arrow-right"></i></a>
+            <a href="catalogue.html" class="btn btn-link w-100 mt-1">Continuer mes achats</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../static/js/data.js"></script>
+  <script src="../static/js/app.js"></script>
+  <script>
+    const { esc, fmt, cart } = IM;
+
+    function render() {
+      const groups = cart.groupByShop();
+      const count = cart.count();
+      document.getElementById("cart-sub").textContent = count ? `(${count} article${count > 1 ? "s" : ""})` : "";
+
+      if (!groups.length) {
+        document.getElementById("cart-root").innerHTML = `<div class="col-12"><div class="card empty-state">
+          <i class="bi bi-cart-x"></i><h5 class="mt-3">Votre panier est vide</h5>
+          <p>Parcourez le catalogue et ajoutez des produits de vos boutiques préférées.</p>
+          <div><a href="catalogue.html" class="btn btn-primary">Découvrir les produits</a></div></div></div>`;
+        return;
+      }
+
+      /* Un bloc par vendeur = future sous-commande */
+      document.getElementById("cart-groups").innerHTML = groups.map((g, gi) => `
+        <div class="card vendor-group mb-3">
+          <div class="vendor-head d-flex justify-content-between align-items-center px-3 py-2 rounded-top-3">
+            <a href="boutique.html?id=${g.boutique.id}" class="fw-semibold text-green"><i class="bi bi-shop me-1"></i>${esc(g.boutique.nom)}</a>
+            <small class="text-muted">Colis ${gi + 1} sur ${groups.length}</small>
+          </div>
+          <ul class="list-group list-group-flush">
+            ${g.lignes.map((l) => `
+            <li class="list-group-item py-3">
+              <div class="d-flex gap-3">
+                <a href="produit.html?id=${l.produit.id}">${IM.thumb(l.produit, "sm")}</a>
+                <div class="flex-fill min-w-0">
+                  <div class="d-flex justify-content-between gap-2">
+                    <a href="produit.html?id=${l.produit.id}" class="fw-medium text-dark">${esc(l.produit.nom)}</a>
+                    <button class="btn btn-sm btn-link text-danger p-0" data-remove="${esc(l.key)}" aria-label="Supprimer"><i class="bi bi-trash"></i></button>
+                  </div>
+                  ${l.variante ? `<div class="small text-muted">${esc(l.variante)}</div>` : ""}
+                  <div class="small ${l.dispo ? "text-green" : "text-danger fw-semibold"}">
+                    ${l.dispo ? `<i class="bi bi-check-circle"></i> Disponible` : `<i class="bi bi-x-circle"></i> Stock insuffisant (reste ${l.produit.stock})`}
+                  </div>
+                  <div class="d-flex flex-wrap justify-content-between align-items-center mt-2 gap-2">
+                    <div class="input-group input-group-sm qty-input">
+                      <button class="btn btn-outline-secondary" data-qty="${esc(l.key)}" data-delta="-1" aria-label="Diminuer"><i class="bi bi-dash"></i></button>
+                      <input class="form-control" type="number" min="1" max="${l.produit.stock}" value="${l.quantite}" data-qty-input="${esc(l.key)}" aria-label="Quantité">
+                      <button class="btn btn-outline-secondary" data-qty="${esc(l.key)}" data-delta="1" aria-label="Augmenter"><i class="bi bi-plus"></i></button>
+                    </div>
+                    <div class="text-end">
+                      <div class="price">${fmt(l.total)}</div>
+                      <small class="text-muted">${fmt(l.prix_unitaire)} / unité</small>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </li>`).join("")}
+          </ul>
+          <div class="card-footer bg-white d-flex justify-content-between small">
+            <span class="text-muted">Sous-total ${esc(g.boutique.nom)}</span><strong>${fmt(g.sous_total)}</strong>
+          </div>
+        </div>`).join("") + `<button class="btn btn-sm btn-outline-danger" id="btn-clear"><i class="bi bi-trash me-1"></i>Vider le panier</button>`;
+
+      const total = cart.total();
+      const allOk = groups.every((g) => g.lignes.every((l) => l.dispo));
+      document.getElementById("sum-count").textContent = count;
+      document.getElementById("sum-subtotal").textContent = fmt(total);
+      document.getElementById("sum-total").textContent = fmt(total);
+      document.getElementById("stock-alert").classList.toggle("d-none", allOk);
+      document.getElementById("btn-checkout").classList.toggle("disabled", !allOk);
+      document.getElementById("split-info").innerHTML = groups.length > 1
+        ? `<i class="bi bi-diagram-3 text-green me-1"></i>Votre commande regroupe <strong>${groups.length} boutiques</strong> : elle sera répartie en ${groups.length} sous-commandes, chacune préparée par son vendeur.`
+        : `<i class="bi bi-shop text-green me-1"></i>Commande préparée par <strong>${esc(groups[0].boutique.nom)}</strong>.`;
+    }
+
+    document.addEventListener("click", (e) => {
+      const rm = e.target.closest("[data-remove]");
+      if (rm) { cart.remove(rm.dataset.remove); IM.toast("Article retiré du panier.", "info"); render(); return; }
+      const q = e.target.closest("[data-qty]");
+      if (q) {
+        const line = cart.items().find((i) => i.key === q.dataset.qty);
+        if (line) { cart.setQty(line.key, line.quantite + Number(q.dataset.delta)); render(); }
+        return;
+      }
+      if (e.target.closest("#btn-clear") && confirm("Vider entièrement le panier ?")) { cart.clear(); render(); }
+    });
+    document.addEventListener("change", (e) => {
+      if (e.target.matches("[data-qty-input]")) { cart.setQty(e.target.dataset.qtyInput, Number(e.target.value) || 1); render(); }
+    });
+    render();
+  </script>
+</body>
+</html>

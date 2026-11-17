@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boutique — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
+</head>
+<body data-root="">
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <!-- Bannière + logo : {{ boutique.banniere.url }} / {{ boutique.logo.url }} -->
+    <div class="shop-hero" id="shop-hero"></div>
+
+    <div class="card mt-0 border-top-0" style="border-radius:0 0 var(--im-radius) var(--im-radius)">
+      <div class="card-body pt-5 mt-2">
+        <div class="d-flex flex-wrap justify-content-between gap-3">
+          <div>
+            <h1 class="h3 fw-bold mb-1" id="shop-name"></h1>
+            <div class="small text-muted" id="shop-meta"></div>
+          </div>
+          <div class="d-flex gap-2 align-items-start">
+            <button class="btn btn-outline-primary" data-demo-action="Vous suivez désormais cette boutique."><i class="bi bi-plus-lg me-1"></i>Suivre</button>
+            <a class="btn btn-light" href="contact.html"><i class="bi bi-chat-dots me-1"></i>Contacter</a>
+          </div>
+        </div>
+        <p class="mt-3 mb-0 text-muted" id="shop-desc"></p>
+        <div class="row g-3 mt-2 text-center">
+          <div class="col-6 col-md-3"><div class="bg-light rounded-3 p-2"><div class="fw-bold" id="st-products"></div><small class="text-muted">Produits</small></div></div>
+          <div class="col-6 col-md-3"><div class="bg-light rounded-3 p-2"><div class="fw-bold" id="st-rating"></div><small class="text-muted">Note moyenne</small></div></div>
+          <div class="col-6 col-md-3"><div class="bg-light rounded-3 p-2"><div class="fw-bold" id="st-reviews"></div><small class="text-muted">Avis</small></div></div>
+          <div class="col-6 col-md-3"><div class="bg-light rounded-3 p-2"><div class="fw-bold">98 %</div><small class="text-muted">Commandes livrées</small></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="row g-4 mt-1">
+      <aside class="col-lg-3">
+        <div class="card">
+          <div class="card-header">Coordonnées</div>
+          <ul class="list-group list-group-flush small" id="shop-contact"></ul>
+        </div>
+        <div class="card mt-3">
+          <div class="card-header">Catégories</div>
+          <div class="list-group list-group-flush" id="shop-cats"></div>
+        </div>
+      </aside>
+      <section class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h2 class="h5 fw-bold mb-0">Produits de la boutique</h2>
+          <select class="form-select form-select-sm w-auto" id="sort" aria-label="Trier">
+            <option value="popularite">Popularité</option><option value="prix_asc">Prix croissant</option><option value="prix_desc">Prix décroissant</option>
+          </select>
+        </div>
+        <div class="row g-3" id="shop-products"></div>
+
+        <h2 class="h5 fw-bold mt-5 mb-3">Avis sur la boutique</h2>
+        <div class="card">
+          <div class="card-body">
+            <!-- Django : POST {% url 'avis:boutique' boutique.id %} -->
+            <form class="needs-validation row g-2 align-items-start" novalidate data-demo-message="Merci pour votre évaluation de la boutique !" data-demo-reset>
+              <div class="col-md-3">
+                <select class="form-select" name="note" required aria-label="Note">
+                  <option value="">Votre note</option><option value="5">★★★★★ Excellent</option><option value="4">★★★★ Très bien</option>
+                  <option value="3">★★★ Correct</option><option value="2">★★ Décevant</option><option value="1">★ Mauvais</option>
+                </select>
+              </div>
+              <div class="col-md-7"><input class="form-control" name="commentaire" placeholder="Votre avis sur le vendeur (service, délais…)" required minlength="5"></div>
+              <div class="col-md-2 d-grid"><button class="btn btn-primary" type="submit">Envoyer</button></div>
+            </form>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../static/js/data.js"></script>
+  <script src="../static/js/app.js"></script>
+  <script>
+    const { D, esc } = IM;
+    const s = IM.getShop(IM.param("id")) || D.boutiques[0];
+    document.title = `${s.nom} — IvoireMarket`;
+    document.getElementById("shop-hero").style.background = `linear-gradient(120deg, ${s.couleur}, ${s.couleur}77), repeating-linear-gradient(45deg, rgba(255,255,255,.06) 0 12px, transparent 12px 24px)`;
+    document.getElementById("shop-hero").innerHTML = IM.shopLogo(s);
+    document.getElementById("shop-name").innerHTML = `${esc(s.nom)} <i class="bi bi-patch-check-fill text-green fs-5" title="Boutique vérifiée"></i>`;
+    document.getElementById("shop-meta").innerHTML = `<i class="bi bi-geo-alt"></i> ${esc(s.commune)}, ${esc(s.ville)} · ${IM.stars(s.note)} ${s.note.toFixed(1)} · Membre depuis ${new Date(s.date_creation).toLocaleDateString("fr-FR", { month: "long", year: "numeric" })}`;
+    document.getElementById("shop-desc").textContent = s.description;
+
+    const products = D.produits.filter((p) => p.boutique_id === s.id && p.statut === "active");
+    document.getElementById("st-products").textContent = products.length;
+    document.getElementById("st-rating").textContent = s.note.toFixed(1) + " / 5";
+    document.getElementById("st-reviews").textContent = s.nb_avis;
+    document.getElementById("shop-contact").innerHTML = `
+      <li class="list-group-item"><i class="bi bi-geo-alt text-orange me-2"></i>${esc(s.commune)}, ${esc(s.ville)}</li>
+      <li class="list-group-item"><i class="bi bi-telephone text-orange me-2"></i>${esc(s.telephone)}</li>
+      <li class="list-group-item"><i class="bi bi-envelope text-orange me-2"></i>${esc(s.email)}</li>
+      <li class="list-group-item"><i class="bi bi-clock text-orange me-2"></i>Lun – Sam, 8 h – 19 h</li>`;
+    document.getElementById("shop-cats").innerHTML = s.categories.map((id) => IM.getCategory(id)).map((c) =>
+      `<a class="list-group-item list-group-item-action small" href="catalogue.html?categorie=${c.id}&boutique=${s.id}"><i class="bi ${c.icone} text-orange me-2"></i>${c.nom}</a>`).join("");
+
+    const sort = document.getElementById("sort");
+    function render() {
+      const fns = { popularite: (a, b) => b.ventes - a.ventes, prix_asc: (a, b) => IM.price(a) - IM.price(b), prix_desc: (a, b) => IM.price(b) - IM.price(a) };
+      const list = [...products].sort(fns[sort.value]);
+      document.getElementById("shop-products").innerHTML = list.length ? list.map((p) => IM.productCard(p, "col-6 col-md-4")).join("")
+        : `<div class="col-12"><div class="card empty-state"><i class="bi bi-box-seam"></i><p class="mt-2 mb-0">Cette boutique n'a pas encore de produits publiés.</p></div></div>`;
+    }
+    sort.addEventListener("change", render);
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Commissions & versements — Administration — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="admin" data-active="commissions" data-title="Commissions & versements" data-subtitle="Taux, commissions historisées et paiements dus aux vendeurs">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="row g-3">
+        <div class="col-xl-4">
+          <div class="card h-100">
+            <div class="card-header">Taux de commission</div>
+            <div class="card-body">
+              <!-- Django : TauxCommission (global / par catégorie / par boutique, avec date_effet). Un changement ne s'applique qu'aux NOUVELLES ventes. -->
+              <form class="needs-validation" novalidate method="post" data-demo-message="Taux enregistré. Il s'appliquera aux nouvelles ventes uniquement.">
+                <label class="form-label" for="rate">Taux global</label>
+                <div class="input-group mb-2"><input class="form-control" type="number" id="rate" name="taux" value="5" min="0" max="50" step="0.5" required><span class="input-group-text">%</span></div>
+                <label class="form-label" for="effet">Date d'effet</label>
+                <input class="form-control mb-3" type="date" id="effet" name="date_effet" required>
+                <div class="bg-light rounded-3 p-3 small mb-3" id="example"></div>
+                <button class="btn btn-primary w-100" type="submit">Enregistrer</button>
+              </form>
+              <hr>
+              <h6 class="fw-semibold small">Taux spécifiques par catégorie</h6>
+              <ul class="list-group list-group-flush small" id="cat-rates"></ul>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-8">
+          <div class="card table-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">Soldes vendeurs
+              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#payModal"><i class="bi bi-cash me-1"></i>Enregistrer un versement</button></div>
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>Boutique</th><th>Ventes</th><th>Commission</th><th>Revenu vendeur</th><th>Déjà versé</th><th>Reste dû</th></tr></thead>
+                <tbody id="balances"></tbody>
+                <tfoot id="balances-total" class="fw-bold"></tfoot>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card table-card mt-3">
+        <div class="card-header">Historique des versements <small class="text-muted fw-normal">— traçables par référence de transfert</small></div>
+        <div class="card-body table-responsive">
+          <table class="table table-hover mb-0">
+            <thead><tr><th>N°</th><th>Boutique</th><th>Période</th><th>Montant</th><th>Moyen</th><th>Référence</th><th>Date</th><th>Statut</th><th></th></tr></thead>
+            <tbody id="payouts"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal fade" id="payModal" tabindex="-1" aria-labelledby="payTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" novalidate id="pay-form">
+        <div class="modal-header"><h5 class="modal-title" id="payTitle">Enregistrer un versement</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body row g-3">
+          <div class="col-12"><label class="form-label" for="p-shop">Boutique</label><select class="form-select" id="p-shop" required><option value="">Choisir…</option></select></div>
+          <div class="col-6"><label class="form-label" for="p-amount">Montant (FCFA)</label><input class="form-control" type="number" id="p-amount" min="1" required></div>
+          <div class="col-6"><label class="form-label" for="p-moyen">Moyen</label><select class="form-select" id="p-moyen" required><option>Orange Money</option><option>MTN MoMo</option><option>Moov Money</option><option>Wave</option><option>Virement bancaire</option></select></div>
+          <div class="col-12"><label class="form-label" for="p-period">Période</label><input class="form-control" id="p-period" value="Novembre 2026 (1re quinzaine)" required></div>
+          <div class="col-12"><label class="form-label" for="p-ref">Référence de la transaction</label><input class="form-control" id="p-ref" required placeholder="Ex. VIR-OM-55900"><div class="invalid-feedback">La référence est obligatoire pour la traçabilité.</div></div>
+          <div class="col-12"><label class="form-label" for="p-proof">Preuve (capture, reçu)</label><input class="form-control" type="file" id="p-proof" accept="image/*,.pdf"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary" type="submit">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const payouts = D.versements.map((v) => ({ ...v }));
+    document.getElementById("effet").value = new Date().toISOString().slice(0, 10);
+    const rate = document.getElementById("rate");
+    const example = () => {
+      const r = Number(rate.value) / 100;
+      document.getElementById("example").innerHTML = `Exemple : vente de <strong>50 000 FCFA</strong><br>Commission : <strong class="text-danger">${fmt(50000 * r)}</strong> · Revenu vendeur : <strong class="text-green">${fmt(50000 * (1 - r))}</strong>`;
+    };
+    rate.addEventListener("input", example); example();
+    document.getElementById("cat-rates").innerHTML = D.categories.filter((c) => c.actif).map((c) => `
+      <li class="list-group-item px-0 d-flex justify-content-between align-items-center"><span><i class="bi ${c.icone} text-orange me-1"></i>${c.nom}</span>
+        <div class="input-group input-group-sm" style="width:100px"><input class="form-control" type="number" value="${c.id === 2 ? 4 : 5}" step="0.5" min="0" aria-label="Taux ${c.nom}"><span class="input-group-text">%</span></div></li>`).join("");
+
+    /* Soldes : Σ revenus vendeurs (sous-commandes livrées/expédiées) – Σ versements effectués */
+    function balances() {
+      const rows = {};
+      IM.subOrders().filter((o) => o.sc.statut !== "cancelled").forEach((o) => {
+        const r = (rows[o.boutique.id] ||= { shop: o.boutique, ventes: 0, com: 0, net: 0, verse: 0 });
+        r.ventes += o.montant; r.com += o.commission; r.net += o.net;
+      });
+      payouts.filter((v) => v.statut === "done").forEach((v) => { if (rows[v.boutique_id]) rows[v.boutique_id].verse += Math.min(v.montant, rows[v.boutique_id].net); });
+      return Object.values(rows);
+    }
+    function render() {
+      const rows = balances();
+      document.getElementById("balances").innerHTML = rows.map((r) => `
+        <tr><td><div class="d-flex gap-2 align-items-center">${IM.shopLogo(r.shop, "avatar")}<span class="fw-medium">${esc(r.shop.nom)}</span></div></td>
+          <td>${fmt(r.ventes)}</td><td class="text-green">${fmt(r.com)}</td><td>${fmt(r.net)}</td><td class="text-muted">${fmt(r.verse)}</td>
+          <td class="fw-bold ${r.net - r.verse > 0 ? "text-orange" : ""}">${fmt(Math.max(0, r.net - r.verse))}</td></tr>`).join("");
+      const t = rows.reduce((a, r) => ({ v: a.v + r.ventes, c: a.c + r.com, n: a.n + r.net, p: a.p + r.verse }), { v: 0, c: 0, n: 0, p: 0 });
+      document.getElementById("balances-total").innerHTML = `<tr><td>Total</td><td>${fmt(t.v)}</td><td class="text-green">${fmt(t.c)}</td><td>${fmt(t.n)}</td><td>${fmt(t.p)}</td><td class="text-orange">${fmt(Math.max(0, t.n - t.p))}</td></tr>`;
+
+      document.getElementById("payouts").innerHTML = payouts.map((v) => `
+        <tr><td class="fw-semibold">VRS-${v.id}</td><td>${esc(IM.getShop(v.boutique_id).nom)}</td><td class="small">${esc(v.periode)}</td><td class="fw-semibold">${fmt(v.montant)}</td>
+          <td class="small">${esc(v.moyen)}</td><td class="small text-muted">${esc(v.reference)}</td><td class="small">${esc(v.date)}</td>
+          <td>${IM.statusBadge(v.statut, v.statut === "done" ? "Versé" : "À verser")}</td>
+          <td class="text-end">${v.statut === "pending" ? `<button class="btn btn-sm btn-success" data-pay="${v.id}">Marquer versé</button>` : ""}</td></tr>`).join("");
+    }
+
+    const shopSel = document.getElementById("p-shop");
+    D.boutiques.filter((b) => b.statut === "active").forEach((b) => shopSel.add(new Option(b.nom, b.id)));
+    const modal = new bootstrap.Modal("#payModal");
+    const form = document.getElementById("pay-form");
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-pay]");
+      if (!b) return;
+      const v = payouts.find((x) => x.id === Number(b.dataset.pay));
+      shopSel.value = v.boutique_id; document.getElementById("p-amount").value = v.montant; document.getElementById("p-period").value = v.periode;
+      form.dataset.editing = v.id;
+      modal.show();
+    });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) { form.classList.add("was-validated"); return; }
+      const data = { boutique_id: Number(shopSel.value), montant: Number(document.getElementById("p-amount").value), periode: document.getElementById("p-period").value,
+        moyen: document.getElementById("p-moyen").value, reference: document.getElementById("p-ref").value, statut: "done", date: new Date().toISOString().slice(0, 10) };
+      const editing = payouts.find((x) => x.id === Number(form.dataset.editing));
+      if (editing) Object.assign(editing, data); else payouts.unshift({ id: 500 + payouts.length + 1, ...data });
+      delete form.dataset.editing;
+      modal.hide(); form.reset(); form.classList.remove("was-validated");
+      IM.toast("Versement enregistré. Le vendeur a été notifié.", "success");
+      render();
+    });
+    document.getElementById("payModal").addEventListener("hidden.bs.modal", () => delete form.dataset.editing);
+    render();
+  </script>
+</body>
+</html>

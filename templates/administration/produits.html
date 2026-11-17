@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Modération produits — Administration — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="admin" data-active="produits" data-title="Modération des produits" data-subtitle="Validation avant publication et contrôle du catalogue">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="card mb-3">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3 small">
+          <i class="bi bi-gear text-orange fs-5"></i>
+          <div class="flex-fill"><strong>Validation obligatoire des nouveaux produits</strong><br><span class="text-muted">Si désactivée, les produits des vendeurs vérifiés sont publiés immédiatement.</span></div>
+          <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="moderation" checked aria-label="Validation obligatoire"></div>
+        </div>
+      </div>
+
+      <ul class="nav nav-pills small mb-3" id="tabs"></ul>
+      <div class="card table-card">
+        <div class="card-header d-flex flex-wrap gap-2">
+          <input class="form-control form-control-sm" style="max-width:240px" type="search" placeholder="Produit, boutique…" data-table-filter="#products" aria-label="Rechercher">
+          <select class="form-select form-select-sm w-auto" id="shop-filter" aria-label="Boutique"><option value="">Toutes les boutiques</option></select>
+        </div>
+        <div class="card-body table-responsive">
+          <table class="table table-hover mb-0" id="products">
+            <thead><tr><th>Produit</th><th>Boutique</th><th>Catégorie</th><th>Prix</th><th>Stock</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const products = D.produits.map((p) => ({ ...p }));
+    const LBL = { active: "Publié", pending: "À valider", rejected: "Refusé", inactive: "Désactivé" };
+    const shopSel = document.getElementById("shop-filter");
+    D.boutiques.forEach((b) => shopSel.add(new Option(b.nom, b.id)));
+    let tab = "pending";
+
+    function render() {
+      document.getElementById("tabs").innerHTML = [["pending", "À valider"], ["active", "Publiés"], ["rejected", "Refusés"], ["", "Tous"]].map(([k, l]) =>
+        `<li class="nav-item"><button class="nav-link py-1 ${k === tab ? "active" : ""}" data-tab="${k}">${l} <span class="badge ${k === tab ? "bg-white text-orange" : "bg-light text-muted"}">${products.filter((p) => !k || p.statut === k).length}</span></button></li>`).join("");
+      const list = products.filter((p) => (!tab || p.statut === tab) && (!shopSel.value || p.boutique_id === Number(shopSel.value)));
+      document.querySelector("#products tbody").innerHTML = list.map((p) => `
+        <tr>
+          <td><div class="d-flex gap-2 align-items-center">${IM.thumb(p, "xs")}<div class="min-w-0"><div class="fw-medium text-truncate" style="max-width:260px">${esc(p.nom)}</div><small class="text-muted text-truncate d-block" style="max-width:260px">${esc(p.description)}</small></div></div></td>
+          <td class="small">${esc(IM.getShop(p.boutique_id).nom)}</td>
+          <td class="small">${IM.getCategory(p.categorie_id).nom}</td>
+          <td class="small fw-semibold">${fmt(IM.price(p))}</td>
+          <td>${p.stock}</td>
+          <td>${IM.statusBadge(p.statut, LBL[p.statut])}</td>
+          <td class="text-end text-nowrap">
+            <a class="btn btn-sm btn-light" href="../produit.html?id=${p.id}" target="_blank" rel="noopener" title="Aperçu" aria-label="Aperçu"><i class="bi bi-eye"></i></a>
+            ${p.statut !== "active" ? `<button class="btn btn-sm btn-success" data-mod="${p.id}" data-to="active" title="Publier"><i class="bi bi-check-lg"></i></button>` : ""}
+            ${p.statut !== "rejected" ? `<button class="btn btn-sm btn-outline-danger" data-mod="${p.id}" data-to="rejected" title="${p.statut === "active" ? "Retirer" : "Refuser"}"><i class="bi bi-x-lg"></i></button>` : ""}
+          </td>
+        </tr>`).join("") || `<tr><td colspan="7" class="text-center text-muted py-4"><i class="bi bi-check2-circle text-green me-1"></i>Rien à traiter ici.</td></tr>`;
+    }
+    shopSel.addEventListener("change", render);
+    document.getElementById("moderation").addEventListener("change", (e) =>
+      IM.toast(e.target.checked ? "Validation obligatoire activée." : "Publication directe activée pour les vendeurs vérifiés.", "info"));
+    document.addEventListener("click", (e) => {
+      const t = e.target.closest("[data-tab]"); if (t) { tab = t.dataset.tab; render(); return; }
+      const m = e.target.closest("[data-mod]");
+      if (!m) return;
+      const p = products.find((x) => x.id === Number(m.dataset.mod));
+      let motif = "";
+      if (m.dataset.to === "rejected") { motif = prompt("Motif du refus / retrait (transmis au vendeur) :"); if (!motif) return; }
+      p.statut = m.dataset.to;
+      IM.toast(`« ${esc(p.nom)} » ${p.statut === "active" ? "publié" : "refusé"}. Le vendeur a été notifié.`, p.statut === "active" ? "success" : "info");
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Utilisateurs — Administration — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="admin" data-active="utilisateurs" data-title="Utilisateurs" data-subtitle="Comptes, rôles et permissions">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="card table-card">
+        <div class="card-header d-flex flex-wrap gap-2 align-items-center">
+          <input class="form-control form-control-sm" style="max-width:240px" type="search" placeholder="Nom, e-mail…" data-table-filter="#users" aria-label="Rechercher">
+          <select class="form-select form-select-sm w-auto" id="role-filter" aria-label="Rôle">
+            <option value="">Tous les rôles</option><option value="client">Clients</option><option value="vendeur">Vendeurs</option><option value="livreur">Livreurs</option><option value="support">Service client</option><option value="admin">Administrateurs</option>
+          </select>
+          <button class="btn btn-primary btn-sm ms-auto" data-bs-toggle="modal" data-bs-target="#userModal"><i class="bi bi-person-plus me-1"></i>Nouvel utilisateur</button>
+        </div>
+        <div class="card-body table-responsive">
+          <table class="table table-hover mb-0" id="users">
+            <thead><tr><th>Utilisateur</th><th>Rôle</th><th>Inscription</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card mt-3">
+        <div class="card-header">Matrice des permissions (référence)</div>
+        <div class="card-body table-responsive">
+          <!-- Django : Groupes + permissions (django.contrib.auth) ou champ role + décorateurs/mixins -->
+          <table class="table table-sm small text-center mb-0">
+            <thead><tr><th class="text-start">Permission</th><th>Client</th><th>Vendeur</th><th>Livreur</th><th>Service client</th><th>Admin</th></tr></thead>
+            <tbody id="perms"></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content needs-validation" novalidate method="post" data-demo-message="Utilisateur créé. Un e-mail d'activation a été envoyé." data-demo-reset>
+        <div class="modal-header"><h5 class="modal-title" id="userTitle">Utilisateur</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body row g-3">
+          <div class="col-12"><label class="form-label" for="u-nom">Nom complet</label><input class="form-control" id="u-nom" name="nom" required></div>
+          <div class="col-12"><label class="form-label" for="u-email">E-mail</label><input class="form-control" type="email" id="u-email" name="email" required></div>
+          <div class="col-6"><label class="form-label" for="u-role">Rôle</label><select class="form-select" id="u-role" name="role" required><option value="client">Client</option><option value="vendeur">Vendeur</option><option value="livreur">Livreur</option><option value="support">Service client</option><option value="admin">Administrateur</option></select></div>
+          <div class="col-6"><label class="form-label" for="u-statut">Statut</label><select class="form-select" id="u-statut" name="statut"><option value="active">Actif</option><option value="suspended">Suspendu</option></select></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary" type="submit">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc } = IM;
+    const ROLES = { client: ["Client", "secondary"], vendeur: ["Vendeur", "warning"], livreur: ["Livreur", "info"], support: ["Service client", "primary"], admin: ["Admin", "danger"] };
+    const COLORS = ["#f77f00", "#009e60", "#3d6ee0", "#7b4ae2", "#c2185b", "#00897b"];
+    const users = D.utilisateurs.map((u) => ({ ...u }));
+    const filter = document.getElementById("role-filter");
+    function render() {
+      document.querySelector("#users tbody").innerHTML = users.filter((u) => !filter.value || u.role === filter.value).map((u, i) => `
+        <tr>
+          <td><div class="d-flex gap-2 align-items-center"><span class="avatar" style="background:${COLORS[i % COLORS.length]}">${IM.initials(u.nom)}</span>
+            <div><div class="fw-medium">${esc(u.nom)}</div><small class="text-muted">${esc(u.email)}</small></div></div></td>
+          <td><span class="badge bg-${ROLES[u.role][1]}-subtle text-${ROLES[u.role][1]}-emphasis">${ROLES[u.role][0]}</span></td>
+          <td class="small">${new Date(u.date_inscription).toLocaleDateString("fr-FR")}</td>
+          <td data-status-cell>${IM.statusBadge(u.statut, { active: "Actif", pending: "À valider", suspended: "Suspendu" }[u.statut])}</td>
+          <td class="text-end text-nowrap">
+            <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#userModal" title="Modifier" aria-label="Modifier"><i class="bi bi-pencil"></i></button>
+            ${u.role === "admin" ? "" : u.statut === "suspended"
+              ? `<button class="btn btn-sm btn-light text-green" data-set="${u.id}" data-value="active" title="Réactiver" aria-label="Réactiver"><i class="bi bi-unlock"></i></button>`
+              : `<button class="btn btn-sm btn-light text-danger" data-set="${u.id}" data-value="suspended" title="Suspendre" aria-label="Suspendre"><i class="bi bi-lock"></i></button>`}
+            <button class="btn btn-sm btn-light" data-demo-action="Lien de réinitialisation envoyé à ${esc(u.email)}." title="Réinitialiser le mot de passe" aria-label="Réinitialiser le mot de passe"><i class="bi bi-key"></i></button>
+          </td>
+        </tr>`).join("");
+    }
+    filter.addEventListener("change", render);
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-set]");
+      if (!b) return;
+      const u = users.find((x) => x.id === Number(b.dataset.set));
+      if (b.dataset.value === "suspended" && !confirm(`Suspendre le compte de ${u.nom} ? Il ne pourra plus se connecter.`)) return;
+      u.statut = b.dataset.value;
+      IM.toast(`Compte ${u.statut === "active" ? "réactivé" : "suspendu"} : ${esc(u.nom)}.`, "info");
+      render();
+    });
+    render();
+
+    const PERMS = [
+      ["Acheter, gérer son panier et ses commandes", [1, 0, 0, 0, 1]],
+      ["Gérer sa boutique et ses produits", [0, 1, 0, 0, 1]],
+      ["Voir ses sous-commandes et revenus", [0, 1, 0, 0, 1]],
+      ["Mettre à jour le statut des livraisons affectées", [0, 0, 1, 0, 1]],
+      ["Traiter réclamations et litiges", [0, 0, 0, 1, 1]],
+      ["Valider vendeurs, boutiques et produits", [0, 0, 0, 0, 1]],
+      ["Gérer commissions, versements et remboursements", [0, 0, 0, 0, 1]],
+    ];
+    document.getElementById("perms").innerHTML = PERMS.map(([l, v]) => `<tr><td class="text-start">${l}</td>${v.map((x) => `<td>${x ? '<i class="bi bi-check-circle-fill text-green"></i>' : '<i class="bi bi-dash text-muted"></i>'}</td>`).join("")}</tr>`).join("");
+  </script>
+</body>
+</html>

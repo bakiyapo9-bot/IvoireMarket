@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Traiter une demande — Service client — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="support" data-active="ticket" data-title="Traiter une demande">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <a href="dashboard.html" class="small"><i class="bi bi-arrow-left"></i> Toutes les demandes</a>
+      <div class="row g-3 mt-1">
+        <div class="col-xl-8">
+          <div class="card">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2" id="head"></div>
+            <div class="card-body d-flex flex-column gap-2" id="thread" style="min-height:300px;max-height:520px;overflow-y:auto"></div>
+            <div class="card-footer bg-white">
+              <!-- Django : POST {% url 'support:repondre' reclamation.id %} -> MessageReclamation(auteur=request.user) -->
+              <form id="reply-form" novalidate>
+                <div class="d-flex flex-wrap gap-1 mb-2">
+                  <button class="btn btn-sm btn-light" type="button" data-template="Bonjour, merci pour votre message. Nous étudions votre demande et revenons vers vous rapidement.">Accusé de réception</button>
+                  <button class="btn btn-sm btn-light" type="button" data-template="Pourriez-vous nous envoyer une photo du produit reçu, s'il vous plaît ?">Demander une photo</button>
+                  <button class="btn btn-sm btn-light" type="button" data-template="Votre remboursement a été validé. Il apparaîtra sur votre compte Mobile Money sous 24 à 72 h.">Remboursement validé</button>
+                </div>
+                <textarea class="form-control mb-2" id="reply" rows="3" placeholder="Votre réponse au client…" required aria-label="Réponse"></textarea>
+                <div class="d-flex flex-wrap gap-2 justify-content-between">
+                  <div class="form-check"><input class="form-check-input" type="checkbox" id="internal"><label class="form-check-label small" for="internal">Note interne (invisible pour le client)</label></div>
+                  <button class="btn btn-primary" type="submit"><i class="bi bi-send me-1"></i>Envoyer</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card mb-3">
+            <div class="card-header">Gestion de la demande</div>
+            <div class="card-body">
+              <label class="form-label small" for="st">Statut</label>
+              <select class="form-select form-select-sm mb-2" id="st"><option value="pending">Nouvelle</option><option value="processing">En cours</option><option value="done">Résolue</option></select>
+              <label class="form-label small" for="prio">Priorité</label>
+              <select class="form-select form-select-sm mb-2" id="prio"><option value="haute">Haute</option><option value="moyenne">Moyenne</option><option value="basse">Basse</option></select>
+              <label class="form-label small" for="agent">Agent</label>
+              <select class="form-select form-select-sm mb-3" id="agent"><option value="">Non affecté</option><option>Nadège Aka</option><option>Yves Ouattara</option></select>
+              <div class="d-grid gap-2">
+                <button class="btn btn-sm btn-outline-warning" data-demo-action="Demande escaladée en litige. Le vendeur et l'administration ont été notifiés." data-type="warning"><i class="bi bi-exclamation-diamond me-1"></i>Ouvrir un litige vendeur</button>
+                <a class="btn btn-sm btn-outline-primary" href="../administration/paiements.html#refunds"><i class="bi bi-arrow-return-left me-1"></i>Demander un remboursement</a>
+              </div>
+            </div>
+          </div>
+          <div class="card mb-3">
+            <div class="card-header">Client & commande</div>
+            <div class="card-body small" id="ctx"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">Historique du client</div>
+            <ul class="list-group list-group-flush small" id="history"></ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const r = D.reclamations.find((x) => x.id === Number(IM.param("id"))) || D.reclamations[0];
+    const c = D.commandes.find((x) => x.reference === r.commande_ref);
+    const LBL = { pending: "Nouvelle", processing: "En cours", done: "Résolue" };
+
+    function head() {
+      document.getElementById("head").innerHTML = `<div><strong>${esc(r.reference)}</strong> — ${esc(r.sujet)}<div class="small text-muted fw-normal">${esc(r.type)} · ouverte le ${esc(r.date)}</div></div>${IM.statusBadge(r.statut, LBL[r.statut])}`;
+    }
+    function thread() {
+      const el = document.getElementById("thread");
+      el.innerHTML = r.messages.map((m) => `<div class="msg ${m.role === "client" ? "from-client" : "from-agent"} ${m.interne ? "border border-warning" : ""}">
+        <div class="small fw-semibold">${esc(m.auteur)} ${m.interne ? '<span class="badge bg-warning text-dark">Note interne</span>' : ""}</div>${esc(m.texte)}
+        <div class="text-muted" style="font-size:.7rem">${esc(m.date)}</div></div>`).join("");
+      el.scrollTop = el.scrollHeight;
+    }
+    head(); thread();
+
+    document.getElementById("st").value = r.statut;
+    document.getElementById("prio").value = r.priorite;
+    document.getElementById("agent").value = r.agent || "";
+    document.getElementById("st").addEventListener("change", (e) => { r.statut = e.target.value; head(); IM.toast(`Statut : ${LBL[r.statut]}. Le client a été notifié.`, "info"); });
+    document.getElementById("prio").addEventListener("change", () => IM.toast("Priorité mise à jour.", "info"));
+    document.getElementById("agent").addEventListener("change", (e) => IM.toast(e.target.value ? `Demande affectée à ${esc(e.target.value)}.` : "Affectation retirée.", "info"));
+
+    document.querySelectorAll("[data-template]").forEach((b) => b.addEventListener("click", () => { document.getElementById("reply").value = b.dataset.template; document.getElementById("reply").focus(); }));
+    document.getElementById("reply-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const t = document.getElementById("reply");
+      if (!t.value.trim()) { e.currentTarget.classList.add("was-validated"); return; }
+      const interne = document.getElementById("internal").checked;
+      r.messages.push({ auteur: "Nadège Aka", role: "agent", interne, date: new Date().toLocaleString("fr-FR"), texte: t.value.trim() });
+      if (r.statut === "pending") { r.statut = "processing"; document.getElementById("st").value = "processing"; head(); }
+      t.value = ""; e.currentTarget.classList.remove("was-validated");
+      thread();
+      IM.toast(interne ? "Note interne ajoutée." : "Réponse envoyée au client (notification in-app).", "success");
+    });
+
+    document.getElementById("ctx").innerHTML = c ? `
+      <div class="fw-semibold">${esc(r.client)}</div><div class="text-muted mb-2">${esc(c.telephone)}</div>
+      <div><strong>${esc(c.reference)}</strong> · ${IM.statusBadge(c.statut)}</div>
+      <div class="text-muted">${esc(c.date)} · ${fmt(IM.orderTotal(c))} · ${esc(c.moyen_paiement)}</div>
+      <ul class="list-unstyled mt-2 mb-0">${c.sous_commandes.map((s) => `<li class="d-flex justify-content-between"><span><i class="bi bi-shop text-green me-1"></i>${esc(IM.getShop(s.boutique_id).nom)}</span>${IM.statusBadge(s.statut)}</li>`).join("")}</ul>` : "—";
+
+    document.getElementById("history").innerHTML = D.reclamations.filter((x) => x.client === r.client).map((x) => `
+      <li class="list-group-item d-flex justify-content-between"><a href="ticket.html?id=${x.id}">${esc(x.reference)}</a>${IM.statusBadge(x.statut, LBL[x.statut])}</li>`).join("");
+  </script>
+</body>
+</html>

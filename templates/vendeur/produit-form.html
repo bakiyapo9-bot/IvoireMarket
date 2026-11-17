@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Produit — Espace vendeur — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="vendeur" data-active="produit-form" data-title="Ajouter un produit" data-subtitle="Le produit sera visible après validation par l'administration">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <!--
+        Django : POST multipart {% url 'vendeur:produit_creer' %} ou {% url 'vendeur:produit_modifier' produit.id %}.
+        Variantes -> inlineformset_factory(Produit, Variante) : ajouter {{ formset.management_form }}.
+        Images -> ImageProduit (plusieurs fichiers).
+      -->
+      <form novalidate method="post" enctype="multipart/form-data" id="product-form">
+        <div class="row g-3">
+          <div class="col-xl-8">
+            <div class="card mb-3">
+              <div class="card-header">Informations</div>
+              <div class="card-body row g-3">
+                <div class="col-12"><label class="form-label" for="nom">Nom du produit</label><input class="form-control" id="nom" name="nom" required maxlength="150"><div class="invalid-feedback">Obligatoire.</div></div>
+                <div class="col-md-6"><label class="form-label" for="cat">Catégorie</label><select class="form-select" id="cat" name="categorie" required><option value="">Choisir…</option></select><div class="invalid-feedback">Obligatoire.</div></div>
+                <div class="col-md-6"><label class="form-label" for="sous">Sous-catégorie</label><select class="form-select" id="sous" name="sous_categorie"><option value="">—</option></select></div>
+                <div class="col-12"><label class="form-label" for="desc">Description</label><textarea class="form-control" id="desc" name="description" rows="5" required minlength="30"></textarea><div class="invalid-feedback">30 caractères minimum.</div></div>
+              </div>
+            </div>
+
+            <div class="card mb-3">
+              <div class="card-header">Images</div>
+              <div class="card-body">
+                <label class="img-upload d-block" for="images"><i class="bi bi-cloud-arrow-up fs-2 d-block"></i>Cliquez pour ajouter des photos<br><small>JPG/PNG, jusqu'à 8 images. La première sera l'image principale.</small></label>
+                <input class="d-none" type="file" id="images" name="images" multiple accept="image/*" data-preview="#img-prev">
+                <div class="preview-grid d-flex flex-wrap gap-2 mt-3" id="img-prev"></div>
+              </div>
+            </div>
+
+            <div class="card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center">Variantes <small class="text-muted fw-normal">taille, couleur, modèle</small></div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-sm align-middle mb-2" id="variants">
+                    <thead><tr><th>Type</th><th>Valeur</th><th>Supplément (FCFA)</th><th>Stock</th><th>SKU</th><th></th></tr></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+                <button class="btn btn-sm btn-outline-primary" type="button" id="add-variant"><i class="bi bi-plus"></i> Ajouter une variante</button>
+                <div class="small text-muted mt-2">Sans variante, le stock global ci-contre s'applique.</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-4">
+            <div class="card mb-3">
+              <div class="card-header">Prix & stock</div>
+              <div class="card-body row g-3">
+                <div class="col-12"><label class="form-label" for="prix">Prix de vente (FCFA)</label><input class="form-control" type="number" id="prix" name="prix" min="100" step="50" required><div class="invalid-feedback">Prix minimum 100 FCFA.</div></div>
+                <div class="col-12"><label class="form-label" for="stock">Quantité en stock</label><input class="form-control" type="number" id="stock" name="stock" min="0" required><div class="invalid-feedback">Obligatoire.</div></div>
+                <div class="col-12"><label class="form-label" for="sku">Référence (SKU)</label><input class="form-control" id="sku" name="sku" placeholder="AT-TEL-001"></div>
+                <div class="col-12">
+                  <div class="bg-light rounded-3 p-3 small" id="revenue-preview">
+                    <div class="d-flex justify-content-between"><span>Prix de vente</span><span id="rp-price">—</span></div>
+                    <div class="d-flex justify-content-between text-danger"><span>Commission IvoireMarket (5 %)</span><span id="rp-com">—</span></div>
+                    <hr class="my-2"><div class="d-flex justify-content-between fw-bold"><span>Votre revenu</span><span class="text-green" id="rp-net">—</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card mb-3">
+              <div class="card-header d-flex justify-content-between align-items-center">Promotion
+                <div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" id="promo-on" aria-label="Activer la promotion"></div></div>
+              <div class="card-body row g-3 d-none" id="promo-fields">
+                <div class="col-12"><label class="form-label" for="prix_promo">Prix promotionnel (FCFA)</label><input class="form-control" type="number" id="prix_promo" name="prix_promo" min="100" step="50"><div class="invalid-feedback" id="promo-err">Doit être inférieur au prix de vente.</div></div>
+                <div class="col-6"><label class="form-label" for="pd">Début</label><input class="form-control" type="date" id="pd" name="promo_debut"></div>
+                <div class="col-6"><label class="form-label" for="pf">Fin</label><input class="form-control" type="date" id="pf" name="promo_fin"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">Publication</div>
+              <div class="card-body">
+                <div class="form-check form-switch mb-3"><input class="form-check-input" type="checkbox" id="actif" name="actif" checked><label class="form-check-label" for="actif">Produit actif (visible une fois validé)</label></div>
+                <div class="alert alert-light small mb-3"><i class="bi bi-shield-check text-green me-1"></i>Les nouveaux produits sont vérifiés par la modération avant publication.</div>
+                <div class="d-grid gap-2">
+                  <button class="btn btn-primary" type="submit" name="action" value="soumettre"><i class="bi bi-send me-1"></i>Soumettre à validation</button>
+                  <button class="btn btn-light" type="submit" name="action" value="brouillon" formnovalidate>Enregistrer comme brouillon</button>
+                  <a href="produits.html" class="btn btn-link text-muted">Annuler</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const cat = document.getElementById("cat"), sous = document.getElementById("sous");
+    D.categories.filter((c) => c.actif).forEach((c) => cat.add(new Option(c.nom, c.id)));
+    const fillSous = () => { sous.length = 1; (IM.getCategory(cat.value)?.sous_categories || []).forEach((s) => sous.add(new Option(s.nom, s.id))); };
+    cat.addEventListener("change", fillSous);
+
+    /* Variantes dynamiques (préfixe compatible formset Django : variantes-N-champ) */
+    const tbody = document.querySelector("#variants tbody");
+    let n = 0;
+    function addVariant(type = "taille", valeur = "", stock = "") {
+      const i = n++;
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><select class="form-select form-select-sm" name="variantes-${i}-type" aria-label="Type"><option value="taille">Taille</option><option value="couleur">Couleur</option><option value="modele">Modèle</option></select></td>
+        <td><input class="form-control form-control-sm" name="variantes-${i}-valeur" required aria-label="Valeur"></td>
+        <td><input class="form-control form-control-sm" type="number" name="variantes-${i}-supplement" value="0" min="0" step="50" aria-label="Supplément"></td>
+        <td><input class="form-control form-control-sm" type="number" name="variantes-${i}-stock" min="0" required style="width:80px" aria-label="Stock"></td>
+        <td><input class="form-control form-control-sm" name="variantes-${i}-sku" aria-label="SKU"></td>
+        <td><button class="btn btn-sm btn-light text-danger" type="button" aria-label="Retirer"><i class="bi bi-x-lg"></i></button></td>`;
+      tr.querySelector("select").value = type;
+      tr.querySelector(`[name$=valeur]`).value = valeur;
+      tr.querySelector(`[name$=stock]`).value = stock;
+      tr.querySelector("button").onclick = () => tr.remove();
+      tbody.appendChild(tr);
+    }
+    document.getElementById("add-variant").addEventListener("click", () => addVariant());
+
+    /* Promo + aperçu des revenus */
+    const prix = document.getElementById("prix"), promo = document.getElementById("prix_promo");
+    const promoOn = document.getElementById("promo-on");
+    promoOn.addEventListener("change", () => { document.getElementById("promo-fields").classList.toggle("d-none", !promoOn.checked); promo.required = promoOn.checked; preview(); });
+    function preview() {
+      const pv = promoOn.checked && Number(promo.value) ? Number(promo.value) : Number(prix.value);
+      promo.setCustomValidity(promoOn.checked && promo.value && Number(promo.value) >= Number(prix.value) ? "Prix promo trop élevé" : "");
+      if (!pv) { ["rp-price", "rp-com", "rp-net"].forEach((id) => (document.getElementById(id).textContent = "—")); return; }
+      document.getElementById("rp-price").textContent = fmt(pv);
+      document.getElementById("rp-com").textContent = "- " + fmt(IM.commission(pv));
+      document.getElementById("rp-net").textContent = fmt(pv - IM.commission(pv));
+    }
+    prix.addEventListener("input", preview); promo.addEventListener("input", preview);
+
+    /* Mode édition : ?id=… */
+    const p = IM.getProduct(IM.param("id"));
+    if (p) {
+      document.body.dataset.title = "Modifier le produit";
+      document.querySelector("#dash-topbar h1")?.replaceChildren("Modifier le produit");
+      document.getElementById("nom").value = p.nom;
+      cat.value = p.categorie_id; fillSous(); sous.value = p.sous_categorie_id;
+      document.getElementById("desc").value = p.description;
+      prix.value = p.prix; document.getElementById("stock").value = p.stock;
+      document.getElementById("sku").value = "AT-" + String(p.id).padStart(4, "0");
+      if (p.prix_promo) { promoOn.checked = true; promoOn.dispatchEvent(new Event("change")); promo.value = p.prix_promo; }
+      Object.entries(p.variantes).forEach(([t, vals]) => vals.forEach((v) => addVariant(t, v, Math.floor(p.stock / vals.length))));
+      document.getElementById("img-prev").innerHTML = IM.thumb(p, "sm");
+      preview();
+    }
+
+    document.getElementById("product-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const draft = e.submitter?.value === "brouillon";
+      preview();
+      const form = e.currentTarget;
+      if (!draft && !form.checkValidity()) {
+        form.classList.add("was-validated");
+        form.querySelector(":invalid")?.focus();
+        return;
+      }
+      IM.toast(draft ? "Brouillon enregistré." : "Produit soumis à validation. Vous serez notifié dès sa publication.", "success");
+      setTimeout(() => (location.href = "produits.html"), 1200);
+    });
+  </script>
+</body>
+</html>

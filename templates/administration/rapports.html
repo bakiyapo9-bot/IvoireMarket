@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Rapports — Administration — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="admin" data-active="rapports" data-title="Rapports & statistiques" data-subtitle="Rapports financiers et indicateurs d'activité">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <!-- Django : GET ?debut=&fin= puis agrégations (Sum, Count) sur Commission, SousCommande, Transaction -->
+      <form class="card mb-3" method="get">
+        <div class="card-body d-flex flex-wrap gap-2 align-items-end">
+          <div><label class="form-label small mb-1" for="debut">Du</label><input class="form-control form-control-sm" type="date" id="debut" name="debut" value="2025-12-01"></div>
+          <div><label class="form-label small mb-1" for="fin">Au</label><input class="form-control form-control-sm" type="date" id="fin" name="fin" value="2026-11-30"></div>
+          <button class="btn btn-sm btn-primary" type="submit" data-demo-action="Période appliquée.">Appliquer</button>
+          <div class="ms-auto d-flex gap-2">
+            <button class="btn btn-sm btn-light" type="button" data-demo-action="Rapport Excel généré."><i class="bi bi-file-earmark-excel me-1 text-green"></i>Excel</button>
+            <button class="btn btn-sm btn-light" type="button" data-demo-action="Rapport PDF généré."><i class="bi bi-file-earmark-pdf me-1 text-danger"></i>PDF</button>
+          </div>
+        </div>
+      </form>
+
+      <div class="row g-3" id="kpis"></div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-xl-8"><div class="card h-100"><div class="card-header">Évolution mensuelle (millions FCFA)</div><div class="card-body"><div class="chart-box"><canvas id="c-line" role="img" aria-label="Évolution des ventes"></canvas></div></div></div></div>
+        <div class="col-xl-4"><div class="card h-100"><div class="card-header">Ventes par catégorie</div><div class="card-body"><div class="chart-box"><canvas id="c-donut" role="img" aria-label="Ventes par catégorie"></canvas></div></div></div></div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-xl-7">
+          <div class="card table-card">
+            <div class="card-header">Rapport financier par boutique</div>
+            <div class="card-body table-responsive">
+              <table class="table table-sm mb-0"><thead><tr><th>Boutique</th><th>Commandes</th><th>Ventes</th><th>Commission</th><th>Net vendeur</th></tr></thead><tbody id="fin"></tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-5">
+          <div class="card h-100">
+            <div class="card-header">Moyens de paiement</div>
+            <div class="card-body"><div class="chart-box" style="height:240px"><canvas id="c-pay" role="img" aria-label="Moyens de paiement"></canvas></div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const S = D.stats;
+    const total = S.ventes_plateforme.reduce((a, b) => a + b, 0);
+    const com = S.commissions_plateforme.reduce((a, b) => a + b, 0);
+    const kpi = (l, v, sub) => `<div class="col-6 col-xl-3"><div class="card p-3"><div class="stat-label">${l}</div><div class="stat-value">${v}</div><small class="text-muted">${sub}</small></div></div>`;
+    document.getElementById("kpis").innerHTML =
+      kpi("Volume de ventes (12 mois)", total.toFixed(1).replace(".", ",") + " M FCFA", "GMV toutes boutiques") +
+      kpi("Commissions perçues", com.toFixed(2).replace(".", ",") + " M FCFA", "≈ 5 % du volume") +
+      kpi("Panier moyen", fmt(38600), "+6 % sur 12 mois") +
+      kpi("Taux de livraison réussie", "96,8 %", "3,2 % d'échecs / retours");
+
+    new Chart("c-line", { type: "line", data: { labels: S.mois, datasets: [
+      { label: "Ventes", data: S.ventes_plateforme, borderColor: "#f77f00", backgroundColor: "rgba(247,127,0,.12)", fill: true, tension: .35 },
+      { label: "Commissions", data: S.commissions_plateforme, borderColor: "#009e60", backgroundColor: "#009e60", tension: .35 }] },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, scales: { y: { beginAtZero: true, grid: { color: "#eef0f3" } }, x: { grid: { display: false } } } } });
+
+    const PALETTE = ["#f77f00", "#009e60", "#3d6ee0", "#7b4ae2", "#c2185b", "#00897b"];
+    const cats = D.categories.filter((c) => c.actif);
+    const byCat = cats.map((c) => D.produits.filter((p) => p.categorie_id === c.id).reduce((t, p) => t + p.ventes * IM.price(p), 0));
+    new Chart("c-donut", { type: "doughnut", data: { labels: cats.map((c) => c.nom), datasets: [{ data: byCat, backgroundColor: PALETTE, borderWidth: 2, borderColor: "#fff" }] },
+      options: { maintainAspectRatio: false, cutout: "62%", plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } } } } });
+
+    new Chart("c-pay", { type: "bar", data: { labels: ["Orange Money", "MTN MoMo", "Wave", "Moov Money", "Carte", "À la livraison"],
+      datasets: [{ data: [38, 21, 19, 9, 6, 7], backgroundColor: ["#ff7900", "#ffcc00", "#1dc8f2", "#0066b3", "#1d1f2b", "#009e60"], borderRadius: 6 }] },
+      options: { indexAxis: "y", maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c) => c.raw + " %" } } }, scales: { x: { grid: { color: "#eef0f3" }, ticks: { callback: (v) => v + " %" } }, y: { grid: { display: false } } } } });
+
+    const rows = {};
+    IM.subOrders().filter((o) => o.sc.statut !== "cancelled").forEach((o) => {
+      const r = (rows[o.boutique.id] ||= { nom: o.boutique.nom, n: 0, v: 0, c: 0, net: 0 });
+      r.n++; r.v += o.montant; r.c += o.commission; r.net += o.net;
+    });
+    document.getElementById("fin").innerHTML = Object.values(rows).sort((a, b) => b.v - a.v).map((r) =>
+      `<tr><td>${esc(r.nom)}</td><td>${r.n}</td><td>${fmt(r.v)}</td><td class="text-green">${fmt(r.c)}</td><td>${fmt(r.net)}</td></tr>`).join("");
+  </script>
+</body>
+</html>

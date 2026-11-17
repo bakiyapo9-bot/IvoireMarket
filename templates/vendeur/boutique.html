@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ma boutique — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="vendeur" data-active="boutique" data-title="Ma boutique" data-subtitle="Informations publiques, visuels et coordonnées">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="alert bg-green-soft border-0 d-flex align-items-center gap-2">
+        <i class="bi bi-patch-check-fill text-green fs-5"></i>
+        <div class="small flex-fill"><strong>Boutique validée et active</strong> depuis le 12/03/2025. Toute modification du nom ou des catégories sera revue par l'administration.</div>
+        <a href="../boutique.html?id=1" class="btn btn-sm btn-success" target="_blank" rel="noopener">Voir ma boutique</a>
+      </div>
+
+      <!-- Django : POST multipart {% url 'vendeur:boutique_modifier' %} — instance = request.user.boutique -->
+      <form class="needs-validation" novalidate method="post" enctype="multipart/form-data" data-demo-message="Boutique mise à jour.">
+        <div class="row g-3">
+          <div class="col-xl-8">
+            <div class="card mb-3">
+              <div class="card-header">Informations générales</div>
+              <div class="card-body row g-3">
+                <div class="col-md-6"><label class="form-label" for="nom">Nom de la boutique</label><input class="form-control" id="nom" name="nom" value="Abidjan Tech" required maxlength="80"><div class="invalid-feedback">Obligatoire.</div></div>
+                <div class="col-md-6"><label class="form-label" for="slug">Adresse de la boutique</label><div class="input-group"><span class="input-group-text small">ivoiremarket.ci/b/</span><input class="form-control" id="slug" name="slug" value="abidjan-tech" pattern="[a-z0-9\-]+" required></div></div>
+                <div class="col-12"><label class="form-label" for="desc">Description</label><textarea class="form-control" id="desc" name="description" rows="4" required minlength="30">Smartphones, ordinateurs et accessoires high-tech garantis, livrés partout à Abidjan.</textarea><div class="invalid-feedback">30 caractères minimum.</div></div>
+                <div class="col-12"><label class="form-label d-block">Catégories de produits</label><div class="d-flex flex-wrap gap-2" id="cats"></div></div>
+              </div>
+            </div>
+            <div class="card mb-3">
+              <div class="card-header">Coordonnées</div>
+              <div class="card-body row g-3">
+                <div class="col-md-6"><label class="form-label" for="tel">Téléphone</label><input class="form-control" id="tel" name="telephone" type="tel" value="+225 07 01 02 03 04" required></div>
+                <div class="col-md-6"><label class="form-label" for="email">E-mail</label><input class="form-control" id="email" name="email" type="email" value="contact@abidjantech.ci" required></div>
+                <div class="col-md-4"><label class="form-label" for="ville">Ville</label><input class="form-control" id="ville" name="ville" value="Abidjan" required></div>
+                <div class="col-md-4"><label class="form-label" for="commune">Commune</label><input class="form-control" id="commune" name="commune" value="Cocody" required></div>
+                <div class="col-md-4"><label class="form-label" for="horaires">Horaires</label><input class="form-control" id="horaires" name="horaires" value="Lun – Sam, 8 h – 19 h"></div>
+                <div class="col-12"><label class="form-label" for="adresse">Adresse de retrait / entrepôt</label><input class="form-control" id="adresse" name="adresse" value="Cocody Angré, 7e tranche, près de la station"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">Informations du vendeur & versements</div>
+              <div class="card-body row g-3">
+                <div class="col-md-6"><label class="form-label" for="resp">Responsable</label><input class="form-control" id="resp" value="Kouadio Serge" disabled></div>
+                <div class="col-md-6"><label class="form-label" for="rccm">RCCM</label><input class="form-control" id="rccm" name="rccm" value="CI-ABJ-2025-B-04512"></div>
+                <div class="col-md-6"><label class="form-label" for="pay">Mode de versement</label><select class="form-select" id="pay" name="mode_versement"><option selected>Orange Money</option><option>MTN MoMo</option><option>Moov Money</option><option>Wave</option><option>Virement bancaire</option></select></div>
+                <div class="col-md-6"><label class="form-label" for="compte">Numéro de versement</label><input class="form-control" id="compte" name="compte_versement" value="07 01 02 03 04"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-xl-4">
+            <div class="card mb-3">
+              <div class="card-header">Logo</div>
+              <div class="card-body text-center">
+                <div class="d-flex justify-content-center mb-3"><div class="shop-logo" style="background:#3d6ee0;width:96px;height:96px;font-size:2rem">AT</div></div>
+                <label class="img-upload d-block" for="logo"><i class="bi bi-upload fs-4 d-block"></i><span class="small">Carré, 400×400 px min.</span></label>
+                <input class="d-none" type="file" id="logo" name="logo" accept="image/*" data-preview="#logo-prev">
+                <div class="preview-grid d-flex justify-content-center gap-2 mt-2" id="logo-prev"></div>
+              </div>
+            </div>
+            <div class="card mb-3">
+              <div class="card-header">Bannière</div>
+              <div class="card-body">
+                <div class="rounded-3 mb-3" style="height:90px;background:linear-gradient(120deg,#3d6ee0,#3d6ee088)"></div>
+                <label class="img-upload d-block" for="banner"><i class="bi bi-image fs-4 d-block"></i><span class="small">1600×400 px recommandé</span></label>
+                <input class="d-none" type="file" id="banner" name="banniere" accept="image/*" data-preview="#banner-prev">
+                <div class="preview-grid d-flex gap-2 mt-2" id="banner-prev"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header">Statistiques de la boutique</div>
+              <ul class="list-group list-group-flush small">
+                <li class="list-group-item d-flex justify-content-between"><span>Visites (30 j)</span><strong>4 812</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Taux de conversion</span><strong>3,4 %</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Note moyenne</span><strong>4,6 / 5 (128 avis)</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Abonnés</span><strong>356</strong></li>
+                <li class="list-group-item d-flex justify-content-between"><span>Taux de livraison réussie</span><strong class="text-green">98 %</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-3">
+          <button class="btn btn-light" type="reset">Annuler</button>
+          <button class="btn btn-primary px-4" type="submit"><i class="bi bi-check-lg me-1"></i>Enregistrer</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const shop = IM.getShop(1);
+    document.getElementById("cats").innerHTML = IM.D.categories.filter((c) => c.actif).map((c) => `
+      <div class="variant-option"><input type="checkbox" name="categories" value="${c.id}" id="c-${c.id}" ${shop.categories.includes(c.id) ? "checked" : ""}><label for="c-${c.id}"><i class="bi ${c.icone} me-1"></i>${c.nom}</label></div>`).join("");
+  </script>
+</body>
+</html>

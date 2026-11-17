@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Livraisons — Administration — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="admin" data-active="livraisons" data-title="Livraisons" data-subtitle="Zones, frais, livreurs et affectation des colis">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <ul class="nav nav-pills small mb-3" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#t-assign" type="button">Affectations & suivi</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#t-zones" type="button">Zones & frais</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#t-drivers" type="button">Livreurs</button></li>
+      </ul>
+
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="t-assign">
+          <div class="card table-card">
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>Colis</th><th>Boutique (enlèvement)</th><th>Client / zone</th><th>Statut</th><th style="min-width:220px">Livreur</th></tr></thead>
+                <tbody id="assign"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="t-zones">
+          <div class="card table-card">
+            <div class="card-header d-flex justify-content-end"><button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#zoneModal"><i class="bi bi-plus-lg me-1"></i>Nouvelle zone</button></div>
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>Zone</th><th>Frais</th><th>Délai</th><th>Livreurs</th><th>Active</th><th></th></tr></thead>
+                <tbody id="zones"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="tab-pane fade" id="t-drivers">
+          <div class="card table-card">
+            <div class="card-header d-flex justify-content-end"><button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#driverModal"><i class="bi bi-person-plus me-1"></i>Enregistrer un livreur</button></div>
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>Livreur</th><th>Téléphone</th><th>Zone</th><th>Véhicule</th><th>Livraisons</th><th>Statut</th></tr></thead>
+                <tbody id="drivers"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal fade" id="zoneModal" tabindex="-1" aria-labelledby="zoneTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content needs-validation" novalidate method="post" data-demo-message="Zone enregistrée." data-demo-reset>
+        <div class="modal-header"><h5 class="modal-title" id="zoneTitle">Zone de livraison</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body row g-3">
+          <div class="col-12"><label class="form-label" for="z-nom">Nom de la zone</label><input class="form-control" id="z-nom" name="nom" required></div>
+          <div class="col-6"><label class="form-label" for="z-frais">Frais (FCFA)</label><input class="form-control" type="number" id="z-frais" name="frais" min="0" step="100" required></div>
+          <div class="col-6"><label class="form-label" for="z-delai">Délai</label><input class="form-control" id="z-delai" name="delai" placeholder="24 – 48 h" required></div>
+          <div class="col-12"><label class="form-label" for="z-communes">Communes couvertes</label><input class="form-control" id="z-communes" name="communes" placeholder="Cocody, Plateau, Bingerville…"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary" type="submit">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div class="modal fade" id="driverModal" tabindex="-1" aria-labelledby="driverTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content needs-validation" novalidate method="post" data-demo-message="Livreur enregistré. Ses identifiants lui ont été envoyés par SMS." data-demo-reset>
+        <div class="modal-header"><h5 class="modal-title" id="driverTitle">Nouveau livreur</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body row g-3">
+          <div class="col-12"><label class="form-label" for="d-nom">Nom complet</label><input class="form-control" id="d-nom" name="nom" required></div>
+          <div class="col-6"><label class="form-label" for="d-tel">Téléphone</label><input class="form-control" type="tel" id="d-tel" name="telephone" required></div>
+          <div class="col-6"><label class="form-label" for="d-veh">Véhicule</label><select class="form-select" id="d-veh" name="vehicule"><option>Moto</option><option>Tricycle</option><option>Voiture</option><option>Camionnette</option></select></div>
+          <div class="col-12"><label class="form-label" for="d-zone">Zone principale</label><select class="form-select" id="d-zone" name="zone" required></select></div>
+          <div class="col-12"><label class="form-label" for="d-permis">Permis / pièce d'identité</label><input class="form-control" type="file" id="d-permis" name="piece" accept="image/*,.pdf"></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary" type="submit">Enregistrer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const parcels = IM.subOrders().filter((o) => !["cancelled"].includes(o.sc.statut)).map((o) => ({ ...o, sc: { ...o.sc } }));
+    const activeDrivers = D.livreurs.filter((l) => l.statut === "active");
+
+    function renderAssign() {
+      document.getElementById("assign").innerHTML = parcels.map((o) => {
+        const z = IM.getZone(o.commande.zone_id);
+        const locked = ["delivered"].includes(o.sc.statut);
+        return `<tr>
+          <td><div class="fw-semibold">#${o.sc.id}</div><small class="text-muted">${esc(o.commande.reference)}</small></td>
+          <td class="small">${esc(o.boutique.nom)}<br><span class="text-muted">${esc(o.boutique.commune)}</span></td>
+          <td class="small">${esc(o.commande.client)}<br><span class="text-muted">${esc(z.nom)}</span></td>
+          <td>${IM.statusBadge(o.sc.statut)}</td>
+          <td>${locked ? `<span class="small">${esc(IM.getLivreur(o.sc.livreur_id)?.nom || "—")}</span>` : `
+            <select class="form-select form-select-sm" data-assign="${o.sc.id}" aria-label="Affecter un livreur">
+              <option value="">— Non affecté —</option>
+              ${activeDrivers.map((l) => `<option value="${l.id}" ${l.id === o.sc.livreur_id ? "selected" : ""}>${esc(l.nom)}${l.zone_id === z.id ? " ★ zone" : ""}</option>`).join("")}
+            </select>`}</td>
+        </tr>`;
+      }).join("");
+    }
+    document.addEventListener("change", (e) => {
+      const s = e.target.closest("[data-assign]");
+      if (!s) return;
+      const o = parcels.find((x) => x.sc.id === Number(s.dataset.assign));
+      o.sc.livreur_id = Number(s.value) || null;
+      IM.toast(o.sc.livreur_id ? `Colis #${o.sc.id} affecté à ${esc(IM.getLivreur(o.sc.livreur_id).nom)}. Le livreur a été notifié.` : `Affectation retirée pour #${o.sc.id}.`, "success");
+    });
+
+    document.getElementById("zones").innerHTML = D.zones_livraison.map((z) => `
+      <tr><td class="fw-medium">${esc(z.nom)}</td><td>${fmt(z.frais)}</td><td>${esc(z.delai)}</td>
+        <td>${D.livreurs.filter((l) => l.zone_id === z.id).length}</td>
+        <td><div class="form-check form-switch mb-0"><input class="form-check-input" type="checkbox" ${z.actif ? "checked" : ""} aria-label="Zone active" data-zone-toggle></div></td>
+        <td class="text-end"><button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#zoneModal" aria-label="Modifier"><i class="bi bi-pencil"></i></button></td></tr>`).join("");
+    document.addEventListener("change", (e) => { if (e.target.matches("[data-zone-toggle]")) IM.toast(e.target.checked ? "Zone activée." : "Zone désactivée : elle n'est plus proposée au checkout.", "info"); });
+
+    document.getElementById("drivers").innerHTML = D.livreurs.map((l) => `
+      <tr><td><div class="d-flex gap-2 align-items-center"><span class="avatar bg-orange">${IM.initials(l.nom)}</span><span class="fw-medium">${esc(l.nom)}</span></div></td>
+        <td class="small">${esc(l.telephone)}</td><td class="small">${esc(IM.getZone(l.zone_id).nom)}</td><td>${esc(l.vehicule)}</td><td>${l.livraisons}</td>
+        <td>${IM.statusBadge(l.statut, l.statut === "active" ? "Disponible" : "Inactif")}</td></tr>`).join("");
+    const dz = document.getElementById("d-zone");
+    D.zones_livraison.forEach((z) => dz.add(new Option(z.nom, z.id)));
+    renderAssign();
+  </script>
+</body>
+</html>

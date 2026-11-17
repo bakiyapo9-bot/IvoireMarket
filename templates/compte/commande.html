@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Détail de commande — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body data-root="../" data-active="commandes">
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <div class="row g-4">
+      <aside class="col-lg-3" id="account-nav"></aside>
+      <section class="col-lg-9" id="order-root"></section>
+    </div>
+  </main>
+
+  <!-- Modal annulation -->
+  <div class="modal fade" id="cancelModal" tabindex="-1" aria-labelledby="cancelTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <!-- Django : POST {% url 'commandes:annuler_sous_commande' sc.id %} — autorisé seulement si statut ∈ {pending, confirmed} -->
+      <form class="modal-content needs-validation" novalidate method="post" id="cancel-form">
+        <div class="modal-header"><h5 class="modal-title" id="cancelTitle">Annuler la sous-commande</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body">
+          <input type="hidden" name="sous_commande_id" id="cancel-id">
+          <p class="small text-muted">L'annulation est possible tant que le vendeur n'a pas expédié le colis. Si vous avez déjà payé, un remboursement sera créé et rattaché à votre transaction.</p>
+          <label class="form-label" for="cancel-reason">Motif</label>
+          <select class="form-select" id="cancel-reason" name="motif" required>
+            <option value="">Choisir…</option><option>Je me suis trompé(e) d'article</option><option>Délai de livraison trop long</option><option>J'ai trouvé moins cher</option><option>Autre</option>
+          </select>
+          <div class="invalid-feedback">Choisissez un motif.</div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">Retour</button><button type="submit" class="btn btn-danger">Confirmer l'annulation</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const c = D.commandes.find((x) => x.id === Number(IM.param("id")) && x.client_id === 201) || D.commandes[0];
+    const zone = IM.getZone(c.zone_id);
+    const tx = D.transactions.filter((t) => t.commande_ref === c.reference);
+    const CANCELLABLE = ["pending", "confirmed"];
+
+    document.title = `Commande ${c.reference} — IvoireMarket`;
+    document.getElementById("order-root").innerHTML = `
+      <a href="commandes.html" class="small"><i class="bi bi-arrow-left"></i> Mes commandes</a>
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-2 mb-3">
+        <div><h1 class="h4 fw-bold mb-0">Commande ${esc(c.reference)}</h1><small class="text-muted">Passée le ${esc(c.date)}</small></div>
+        <div class="d-flex gap-2 align-items-center">${IM.statusBadge(c.statut)}
+          <button class="btn btn-sm btn-light" onclick="window.print()"><i class="bi bi-printer me-1"></i>Facture</button></div>
+      </div>
+
+      <div class="row g-4">
+        <div class="col-xl-8">
+          ${c.sous_commandes.map((s, i) => {
+            const shop = IM.getShop(s.boutique_id);
+            const liv = IM.getLivreur(s.livreur_id);
+            return `
+            <div class="card vendor-group mb-3">
+              <div class="vendor-head d-flex flex-wrap justify-content-between align-items-center gap-2 px-3 py-2 rounded-top-3">
+                <span class="fw-semibold"><i class="bi bi-shop text-green me-1"></i>${esc(shop.nom)} <small class="text-muted fw-normal">· sous-commande n° ${s.id}</small></span>
+                ${IM.statusBadge(s.statut)}
+              </div>
+              <div class="card-body">
+                <div class="row g-3">
+                  <div class="col-md-7">
+                    ${s.lignes.map((l) => {
+                      const p = IM.getProduct(l.produit_id);
+                      return `<div class="d-flex gap-2 align-items-center mb-2">${IM.thumb(p, "xs")}
+                        <div class="flex-fill small min-w-0"><a href="../produit.html?id=${p.id}" class="text-dark">${esc(l.nom)}</a>
+                        <div class="text-muted">${l.variante ? esc(l.variante) + " · " : ""}${l.quantite} × ${fmt(l.prix_unitaire)}</div></div>
+                        <strong class="small">${fmt(l.quantite * l.prix_unitaire)}</strong></div>`;
+                    }).join("")}
+                    <div class="small text-muted mt-2"><i class="bi bi-lock me-1"></i>Prix figés au moment de l'achat.</div>
+                  </div>
+                  <div class="col-md-5">${IM.timeline(s.statut)}
+                    ${liv ? `<div class="small mt-2"><i class="bi bi-person-badge text-orange me-1"></i>Livreur : ${esc(liv.nom)} · <a href="tel:${liv.telephone.replace(/\s/g, "")}">${esc(liv.telephone)}</a></div>` : ""}
+                  </div>
+                </div>
+              </div>
+              <div class="card-footer bg-white d-flex flex-wrap justify-content-end gap-2">
+                ${CANCELLABLE.includes(s.statut) ? `<button class="btn btn-sm btn-outline-danger" data-cancel="${s.id}">Annuler</button>` : ""}
+                ${s.statut === "delivered" ? `<a class="btn btn-sm btn-outline-primary" href="../produit.html?id=${s.lignes[0].produit_id}#tab-avis"><i class="bi bi-star me-1"></i>Donner mon avis</a>` : ""}
+                <a class="btn btn-sm btn-light" href="reclamations.html?commande=${encodeURIComponent(c.reference)}&boutique=${shop.id}"><i class="bi bi-exclamation-octagon me-1"></i>Signaler un problème</a>
+              </div>
+            </div>`;
+          }).join("")}
+        </div>
+
+        <div class="col-xl-4">
+          <div class="card mb-3">
+            <div class="card-header">Paiement</div>
+            <div class="card-body small">
+              <div class="d-flex justify-content-between mb-1"><span>Sous-total</span><span>${fmt(IM.orderSubtotal(c))}</span></div>
+              <div class="d-flex justify-content-between mb-1"><span>Livraison</span><span>${fmt(c.frais_livraison)}</span></div>
+              <hr class="my-2"><div class="d-flex justify-content-between fw-bold"><span>Total</span><span class="text-orange">${fmt(IM.orderTotal(c))}</span></div>
+              <div class="mt-2">${esc(c.moyen_paiement)} · ${IM.statusBadge(c.paiement_statut, { paid: "Payé", pending: "En attente", failed: "Échoué", refunded: "Remboursé" }[c.paiement_statut])}</div>
+            </div>
+          </div>
+          <div class="card mb-3">
+            <div class="card-header">Livraison</div>
+            <div class="card-body small">
+              <div><i class="bi bi-geo-alt text-orange me-1"></i>${esc(c.adresse)}</div>
+              <div class="mt-1"><i class="bi bi-telephone text-orange me-1"></i>${esc(c.telephone)}</div>
+              <div class="mt-1"><i class="bi bi-truck text-orange me-1"></i>${esc(zone.nom)} (${esc(zone.delai)})</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-header">Transactions</div>
+            <ul class="list-group list-group-flush small">
+              ${tx.length ? tx.map((t) => `<li class="list-group-item d-flex justify-content-between"><span>${t.type === "remboursement" ? '<i class="bi bi-arrow-return-left text-green"></i> Remboursement' : '<i class="bi bi-credit-card text-orange"></i> Paiement'}<br><span class="text-muted">${esc(t.id)} · ${esc(t.date)}</span></span>
+                <span class="text-end">${fmt(t.montant)}<br>${IM.statusBadge(t.statut)}</span></li>`).join("") : `<li class="list-group-item text-muted">Aucune transaction.</li>`}
+            </ul>
+          </div>
+        </div>
+      </div>`;
+
+    const modal = new bootstrap.Modal("#cancelModal");
+    document.querySelectorAll("[data-cancel]").forEach((b) => b.addEventListener("click", () => { document.getElementById("cancel-id").value = b.dataset.cancel; modal.show(); }));
+    document.getElementById("cancel-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!e.currentTarget.checkValidity()) return;
+      modal.hide();
+      IM.toast("Sous-commande annulée. Le remboursement a été initié.", "success");
+      const btn = document.querySelector(`[data-cancel="${document.getElementById("cancel-id").value}"]`);
+      if (btn) {
+        btn.closest(".card").querySelector(".badge-status").outerHTML = IM.statusBadge("cancelled");
+        btn.remove();
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Boutiques — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
+</head>
+<body data-root="">
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <nav aria-label="Fil d'Ariane">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="index.html">Accueil</a></li>
+        <li class="breadcrumb-item active">Boutiques</li>
+      </ol>
+    </nav>
+
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-3 my-3">
+      <div>
+        <h1 class="h3 fw-bold mb-1">Nos boutiques</h1>
+        <p class="text-muted mb-0">Des commerçants ivoiriens vérifiés par notre équipe.</p>
+      </div>
+      <form class="d-flex gap-2" method="get" role="search" id="shop-search">
+        <input class="form-control" type="search" name="q" id="shop-q" placeholder="Rechercher une boutique…" aria-label="Rechercher une boutique">
+        <select class="form-select" name="categorie" id="shop-cat" aria-label="Catégorie"><option value="">Toutes catégories</option></select>
+      </form>
+    </div>
+
+    <!-- Django : {% for boutique in boutiques %} (filtrées sur statut="active") -->
+    <div class="row g-4" id="shop-grid"></div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../static/js/data.js"></script>
+  <script src="../static/js/app.js"></script>
+  <script>
+    const { D } = IM;
+    const q = document.getElementById("shop-q");
+    const cat = document.getElementById("shop-cat");
+    D.categories.filter((c) => c.actif).forEach((c) => cat.add(new Option(c.nom, c.id)));
+    function render() {
+      const term = q.value.trim().toLowerCase();
+      const list = D.boutiques.filter((b) => b.statut === "active"
+        && (!term || (b.nom + b.description + b.commune + b.ville).toLowerCase().includes(term))
+        && (!cat.value || b.categories.includes(Number(cat.value))));
+      document.getElementById("shop-grid").innerHTML = list.length ? list.map((b) => IM.shopCard(b)).join("")
+        : `<div class="col-12"><div class="card empty-state"><i class="bi bi-shop"></i><p class="mt-2 mb-0">Aucune boutique trouvée.</p></div></div>`;
+    }
+    q.addEventListener("input", render);
+    cat.addEventListener("change", render);
+    document.getElementById("shop-search").addEventListener("submit", (e) => { e.preventDefault(); render(); });
+    render();
+  </script>
+</body>
+</html>

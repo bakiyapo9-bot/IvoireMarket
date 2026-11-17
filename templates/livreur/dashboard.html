@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mes livraisons — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="livreur" data-active="dashboard" data-title="Mes livraisons du jour" data-subtitle="Ibrahim Coulibaly · Zone Cocody / Plateau">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="row g-3" id="stats"></div>
+      <!-- Django : SousCommande.objects.filter(livreur=request.user.livreur, statut__in=[...]) -->
+      <div class="row g-3 mt-1" id="parcels"></div>
+    </main>
+  </div>
+
+  <!-- Confirmation de livraison -->
+  <div class="modal fade" id="deliverModal" tabindex="-1" aria-labelledby="deliverTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" novalidate id="deliver-form">
+        <div class="modal-header"><h5 class="modal-title" id="deliverTitle">Confirmer la livraison</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="deliver-id">
+          <label class="form-label" for="code">Code de confirmation donné par le client</label>
+          <input class="form-control form-control-lg text-center fw-bold" id="code" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" required placeholder="• • • •" style="letter-spacing:.6rem">
+          <div class="invalid-feedback">Code à 4 chiffres (démo : 1234).</div>
+          <div id="cash-box" class="form-check mt-3 d-none"><input class="form-check-input" type="checkbox" id="cash" required><label class="form-check-label small" for="cash">J'ai encaissé le montant en espèces</label></div>
+          <label class="form-label mt-3" for="proof">Photo de remise (optionnel)</label>
+          <input class="form-control" type="file" id="proof" accept="image/*" capture="environment">
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Annuler</button><button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i>Confirmer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Échec de livraison -->
+  <div class="modal fade" id="failModal" tabindex="-1" aria-labelledby="failTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" novalidate id="fail-form">
+        <div class="modal-header"><h5 class="modal-title" id="failTitle">Signaler un échec de livraison</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body">
+          <input type="hidden" id="fail-id">
+          <label class="form-label" for="fail-reason">Motif</label>
+          <select class="form-select mb-3" id="fail-reason" required>
+            <option value="">Choisir…</option><option>Client injoignable</option><option>Client absent</option><option>Adresse introuvable</option><option>Colis refusé par le client</option><option>Colis endommagé</option>
+          </select>
+          <label class="form-label" for="fail-note">Commentaire</label>
+          <textarea class="form-control" id="fail-note" rows="2"></textarea>
+          <div class="form-check mt-3"><input class="form-check-input" type="checkbox" id="retry" checked><label class="form-check-label small" for="retry">Reprogrammer une nouvelle tentative</label></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Annuler</button><button class="btn btn-danger" type="submit">Enregistrer l'échec</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    // Démo : colis affectés au livreur n°1 + deux colis supplémentaires à récupérer
+    const base = IM.subOrders().filter((o) => o.sc.livreur_id === 1 || [2052, 2056].includes(o.sc.id)).map((o) => ({ ...o, sc: { ...o.sc } }));
+    base.forEach((o) => { if (o.sc.statut !== "delivered" && o.sc.statut !== "shipped") o.sc.statut = "processing"; });
+    const parcels = base;
+    const cod = (o) => o.commande.moyen_paiement === "Paiement à la livraison" || o.commande.paiement_statut === "pending";
+
+    function render() {
+      const todo = parcels.filter((o) => !["delivered", "failed"].includes(o.sc.statut));
+      const stat = (icon, cls, v, l) => `<div class="col-6 col-xl-3"><div class="card stat-card"><div class="stat-icon ${cls}"><i class="bi ${icon}"></i></div><div><div class="stat-value">${v}</div><div class="stat-label">${l}</div></div></div></div>`;
+      document.getElementById("stats").innerHTML =
+        stat("bi-box-seam", "icon-orange", parcels.filter((o) => o.sc.statut === "processing").length, "À récupérer") +
+        stat("bi-truck", "icon-blue", parcels.filter((o) => o.sc.statut === "shipped").length, "En cours de livraison") +
+        stat("bi-check2-circle", "icon-green", parcels.filter((o) => o.sc.statut === "delivered").length, "Livrés aujourd'hui") +
+        stat("bi-exclamation-octagon", "icon-red", parcels.filter((o) => o.sc.statut === "failed").length, "Échecs");
+
+      document.getElementById("parcels").innerHTML = parcels.map((o) => {
+        const c = o.commande, z = IM.getZone(c.zone_id);
+        const step = o.sc.statut;
+        return `
+        <div class="col-md-6 col-xxl-4">
+          <div class="card h-100 ${step === "delivered" ? "opacity-75" : ""}">
+            <div class="card-header d-flex justify-content-between align-items-center"><span>Colis #${o.sc.id}</span>${IM.statusBadge(step, { processing: "À récupérer", shipped: "En livraison", delivered: "Livré", failed: "Échec" }[step])}</div>
+            <div class="card-body small">
+              <div class="d-flex gap-2 mb-3"><i class="bi bi-shop text-orange fs-5"></i><div><div class="text-muted">Enlèvement</div><strong>${esc(o.boutique.nom)}</strong><div>${esc(o.boutique.commune)}, ${esc(o.boutique.ville)} · <a href="tel:${o.boutique.telephone.replace(/\s/g, "")}">${esc(o.boutique.telephone)}</a></div></div></div>
+              <div class="d-flex gap-2 mb-3"><i class="bi bi-geo-alt-fill text-green fs-5"></i><div><div class="text-muted">Livraison</div><strong>${esc(c.client)}</strong><div>${esc(c.adresse)}</div><div class="text-muted">${esc(z.nom)}</div>
+                <a href="tel:${c.telephone.replace(/\s/g, "")}" class="btn btn-sm btn-outline-success mt-1"><i class="bi bi-telephone me-1"></i>${esc(c.telephone)}</a></div></div>
+              <div class="d-flex justify-content-between bg-light rounded-3 p-2">
+                <span>${o.sc.lignes.reduce((n, l) => n + l.quantite, 0)} article(s)</span>
+                ${cod(o) ? `<strong class="text-danger">À encaisser : ${fmt(o.montant)}</strong>` : `<span class="text-green"><i class="bi bi-check-circle me-1"></i>Déjà payé</span>`}
+              </div>
+            </div>
+            <div class="card-footer bg-white d-grid gap-2">
+              ${step === "processing" ? `<button class="btn btn-primary" data-pick="${o.sc.id}"><i class="bi bi-box-arrow-up me-1"></i>Colis récupéré chez le vendeur</button>` : ""}
+              ${step === "shipped" ? `<div class="d-flex gap-2"><button class="btn btn-success flex-fill" data-deliver="${o.sc.id}"><i class="bi bi-check2-circle me-1"></i>Livré</button>
+                <button class="btn btn-outline-danger" data-fail="${o.sc.id}">Échec</button></div>
+                <a class="btn btn-light btn-sm" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(c.adresse + ", " + z.nom)}" target="_blank" rel="noopener"><i class="bi bi-map me-1"></i>Itinéraire</a>` : ""}
+              ${step === "delivered" ? `<span class="small text-green text-center"><i class="bi bi-check-all me-1"></i>Livraison confirmée</span>` : ""}
+              ${step === "failed" ? `<span class="small text-danger text-center">${esc(o.echec || "Échec enregistré")}</span>` : ""}
+            </div>
+          </div>
+        </div>`;
+      }).join("") || `<div class="col-12"><div class="card empty-state"><i class="bi bi-truck"></i><p class="mt-2 mb-0">Aucune livraison affectée.</p></div></div>`;
+    }
+
+    const find = (id) => parcels.find((o) => o.sc.id === Number(id));
+    const dModal = new bootstrap.Modal("#deliverModal"), fModal = new bootstrap.Modal("#failModal");
+    document.addEventListener("click", (e) => {
+      const p = e.target.closest("[data-pick]");
+      if (p) { find(p.dataset.pick).sc.statut = "shipped"; IM.toast("Statut « En livraison » : le client a été notifié.", "success"); render(); return; }
+      const d = e.target.closest("[data-deliver]");
+      if (d) {
+        const o = find(d.dataset.deliver);
+        document.getElementById("deliver-id").value = o.sc.id;
+        document.getElementById("cash-box").classList.toggle("d-none", !cod(o));
+        document.getElementById("cash").required = cod(o);
+        dModal.show(); return;
+      }
+      const f = e.target.closest("[data-fail]");
+      if (f) { document.getElementById("fail-id").value = f.dataset.fail; fModal.show(); }
+    });
+    document.getElementById("deliver-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const form = e.currentTarget, code = document.getElementById("code");
+      code.setCustomValidity(code.value === "1234" ? "" : "Code incorrect");
+      if (!form.checkValidity()) { form.classList.add("was-validated"); return; }
+      find(document.getElementById("deliver-id").value).sc.statut = "delivered";
+      dModal.hide(); form.reset(); form.classList.remove("was-validated");
+      IM.toast("Livraison confirmée. Le client et le vendeur ont été notifiés.", "success");
+      render();
+    });
+    document.getElementById("fail-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const form = e.currentTarget;
+      if (!form.checkValidity()) { form.classList.add("was-validated"); return; }
+      const o = find(document.getElementById("fail-id").value);
+      const retry = document.getElementById("retry").checked;
+      o.sc.statut = retry ? "shipped" : "failed";
+      o.echec = document.getElementById("fail-reason").value;
+      fModal.hide(); form.reset(); form.classList.remove("was-validated");
+      IM.toast(retry ? `Échec enregistré (${esc(o.echec)}). Nouvelle tentative programmée.` : "Échec enregistré. L'administration a été alertée.", "warning");
+      render();
+    });
+    render();
+  </script>
+</body>
+</html>

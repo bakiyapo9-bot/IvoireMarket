@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paiements & remboursements — Administration — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="admin" data-active="paiements" data-title="Paiements & remboursements" data-subtitle="Historique des transactions, paiements échoués et remboursements">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="row g-3" id="stats"></div>
+
+      <ul class="nav nav-pills small mt-3 mb-3" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tx" type="button">Transactions</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#refunds" type="button" id="refunds-tab">Remboursements</button></li>
+      </ul>
+      <div class="tab-content">
+        <div class="tab-pane fade show active" id="tx">
+          <div class="card table-card">
+            <div class="card-header d-flex flex-wrap gap-2">
+              <input class="form-control form-control-sm" style="max-width:240px" type="search" placeholder="ID, référence…" data-table-filter="#tx-table" aria-label="Rechercher">
+              <span class="small text-muted ms-auto align-self-center"><i class="bi bi-shield-check text-green me-1"></i>Statuts confirmés par notification serveur du prestataire (webhook signé)</span>
+            </div>
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0" id="tx-table">
+                <thead><tr><th>Transaction</th><th>Commande</th><th>Type</th><th>Moyen</th><th>Montant</th><th>Date</th><th>Statut</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="tab-pane fade" id="refunds">
+          <div class="card table-card">
+            <div class="card-header d-flex justify-content-between align-items-center">Demandes de remboursement
+              <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#refundModal"><i class="bi bi-plus-lg me-1"></i>Nouveau remboursement</button></div>
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>N°</th><th>Commande</th><th>Transaction d'origine</th><th>Client</th><th>Montant</th><th>Motif</th><th>Statut</th><th class="text-end">Actions</th></tr></thead>
+                <tbody id="refund-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Remboursement : toujours rattaché à une transaction identifiable -->
+  <div class="modal fade" id="refundModal" tabindex="-1" aria-labelledby="refundTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" novalidate id="refund-form">
+        <div class="modal-header"><h5 class="modal-title" id="refundTitle">Nouveau remboursement</h5><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button></div>
+        <div class="modal-body row g-3">
+          <div class="col-12"><label class="form-label" for="r-tx">Transaction de paiement d'origine</label><select class="form-select" id="r-tx" required><option value="">Choisir…</option></select><div class="invalid-feedback">Un remboursement doit être associé à une transaction.</div></div>
+          <div class="col-12"><label class="form-label" for="r-amount">Montant (FCFA)</label><input class="form-control" type="number" id="r-amount" min="1" required><div class="invalid-feedback" id="r-amount-err">Montant invalide (≤ montant payé).</div></div>
+          <div class="col-12"><label class="form-label" for="r-reason">Motif</label><input class="form-control" id="r-reason" required minlength="5"><div class="invalid-feedback">Obligatoire.</div></div>
+        </div>
+        <div class="modal-footer"><button class="btn btn-light" type="button" data-bs-dismiss="modal">Annuler</button><button class="btn btn-primary" type="submit">Créer</button></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const tx = D.transactions.map((t) => ({ ...t }));
+    const refunds = D.remboursements.map((r) => ({ ...r }));
+    const sum = (arr) => arr.reduce((t, x) => t + x.montant, 0);
+    const stat = (icon, cls, value, label) => `<div class="col-sm-6 col-xl-3"><div class="card stat-card"><div class="stat-icon ${cls}"><i class="bi ${icon}"></i></div><div><div class="stat-value">${value}</div><div class="stat-label">${label}</div></div></div></div>`;
+
+    function render() {
+      const pays = tx.filter((t) => t.type === "paiement");
+      document.getElementById("stats").innerHTML =
+        stat("bi-check-circle", "icon-green", fmt(sum(pays.filter((t) => t.statut === "success"))), "Paiements encaissés") +
+        stat("bi-x-circle", "icon-red", pays.filter((t) => t.statut === "failed").length, "Paiements échoués") +
+        stat("bi-arrow-return-left", "icon-blue", fmt(sum(refunds.filter((r) => r.statut === "done"))), "Remboursés") +
+        stat("bi-hourglass-split", "icon-orange", refunds.filter((r) => r.statut === "pending").length, "Remboursements en attente");
+
+      document.querySelector("#tx-table tbody").innerHTML = tx.map((t) => `
+        <tr><td class="fw-semibold small">${esc(t.id)}</td><td class="small">${esc(t.commande_ref)}</td>
+          <td>${t.type === "paiement" ? '<span class="badge bg-light text-dark">Paiement</span>' : '<span class="badge bg-info-subtle text-info-emphasis">Remboursement</span>'}</td>
+          <td class="small">${esc(t.moyen)}</td><td class="fw-semibold ${t.type === "remboursement" ? "text-danger" : ""}">${t.type === "remboursement" ? "-" : ""}${fmt(t.montant)}</td>
+          <td class="small text-muted">${esc(t.date)}</td><td>${IM.statusBadge(t.statut)}</td>
+          <td class="text-end">${t.statut === "failed" ? `<button class="btn btn-sm btn-light" data-demo-action="Le client a reçu un lien pour relancer le paiement.">Relancer</button>` : ""}</td></tr>`).join("");
+
+      document.getElementById("refunds-tab").innerHTML = `Remboursements <span class="badge bg-orange ms-1">${refunds.filter((r) => r.statut === "pending").length}</span>`;
+      document.getElementById("refund-table").innerHTML = refunds.map((r) => `
+        <tr><td class="fw-semibold">RMB-${r.id}</td><td class="small">${esc(r.commande_ref)}</td><td class="small">${esc(r.transaction_id)}</td><td>${esc(r.client)}</td>
+          <td class="fw-semibold">${fmt(r.montant)}</td><td class="small">${esc(r.motif)}</td>
+          <td>${IM.statusBadge(r.statut, { pending: "À traiter", done: "Remboursé", rejected: "Refusé" }[r.statut])}</td>
+          <td class="text-end text-nowrap">${r.statut === "pending" ? `<button class="btn btn-sm btn-success" data-refund="${r.id}" data-to="done">Rembourser</button> <button class="btn btn-sm btn-outline-danger" data-refund="${r.id}" data-to="rejected">Refuser</button>` : ""}</td></tr>`).join("");
+    }
+
+    document.addEventListener("click", (e) => {
+      const b = e.target.closest("[data-refund]");
+      if (!b) return;
+      const r = refunds.find((x) => x.id === Number(b.dataset.refund));
+      if (b.dataset.to === "done" && !confirm(`Rembourser ${fmt(r.montant)} sur la transaction ${r.transaction_id} ?`)) return;
+      r.statut = b.dataset.to;
+      if (r.statut === "done") tx.unshift({ id: "TX-" + Math.floor(90000 + Math.random() * 9999), commande_ref: r.commande_ref, type: "remboursement", montant: r.montant, moyen: tx.find((t) => t.id === r.transaction_id)?.moyen || "—", statut: "success", date: new Date().toLocaleString("fr-FR") });
+      IM.toast(r.statut === "done" ? "Remboursement effectué et transaction enregistrée." : "Demande de remboursement refusée.", "success");
+      render();
+    });
+
+    /* Formulaire nouveau remboursement */
+    const txSel = document.getElementById("r-tx");
+    tx.filter((t) => t.type === "paiement" && t.statut === "success").forEach((t) => txSel.add(new Option(`${t.id} — ${t.commande_ref} — ${fmt(t.montant)}`, t.id)));
+    const amount = document.getElementById("r-amount");
+    const form = document.getElementById("refund-form");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const t = tx.find((x) => x.id === txSel.value);
+      const already = refunds.filter((r) => r.transaction_id === txSel.value && r.statut !== "rejected").reduce((s, r) => s + r.montant, 0);
+      amount.setCustomValidity(t && Number(amount.value) > t.montant - already ? "Trop élevé" : "");
+      if (!form.checkValidity()) { form.classList.add("was-validated"); return; }
+      const c = D.commandes.find((x) => x.reference === t.commande_ref);
+      refunds.unshift({ id: 300 + refunds.length + 1, commande_ref: t.commande_ref, transaction_id: t.id, client: c?.client || "—", montant: Number(amount.value), motif: document.getElementById("r-reason").value, statut: "pending", date: new Date().toISOString().slice(0, 10) });
+      bootstrap.Modal.getInstance("#refundModal").hide();
+      form.reset(); form.classList.remove("was-validated");
+      IM.toast("Demande de remboursement créée.", "success");
+      render();
+    });
+
+    if (location.hash === "#refunds") bootstrap.Tab.getOrCreateInstance(document.getElementById("refunds-tab")).show();
+    render();
+  </script>
+</body>
+</html>

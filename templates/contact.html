@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Contact & aide — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../static/css/style.css" rel="stylesheet">
+</head>
+<body data-root="">
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <nav aria-label="Fil d'Ariane">
+      <ol class="breadcrumb"><li class="breadcrumb-item"><a href="index.html">Accueil</a></li><li class="breadcrumb-item active">Contact</li></ol>
+    </nav>
+    <div class="text-center my-4">
+      <h1 class="h3 fw-bold">Comment pouvons-nous vous aider ?</h1>
+      <p class="text-muted">Notre service client répond du lundi au samedi, de 8 h à 20 h.</p>
+    </div>
+
+    <div class="row g-4">
+      <div class="col-lg-4">
+        <div class="card mb-3"><div class="card-body feature-box"><i class="bi bi-telephone text-orange"></i><div><strong>Téléphone</strong><br><span class="small text-muted">+225 27 20 00 00 00</span></div></div></div>
+        <div class="card mb-3"><div class="card-body feature-box"><i class="bi bi-whatsapp text-green"></i><div><strong>WhatsApp</strong><br><span class="small text-muted">+225 07 00 00 00 00</span></div></div></div>
+        <div class="card mb-3"><div class="card-body feature-box"><i class="bi bi-envelope text-orange"></i><div><strong>E-mail</strong><br><span class="small text-muted">support@ivoiremarket.ci</span></div></div></div>
+        <div class="card"><div class="card-body">
+          <h6 class="fw-semibold">Questions fréquentes</h6>
+          <div class="accordion accordion-flush small" id="faq">
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed small" type="button" data-bs-toggle="collapse" data-bs-target="#f1">Puis-je annuler ma commande ?</button></h2>
+              <div id="f1" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Oui, tant que la sous-commande n'a pas été expédiée par le vendeur. Le remboursement est effectué sur le moyen de paiement utilisé.</div></div></div>
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed small" type="button" data-bs-toggle="collapse" data-bs-target="#f2">Pourquoi ai-je reçu plusieurs colis ?</button></h2>
+              <div id="f2" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Quand votre panier contient des produits de plusieurs boutiques, chaque vendeur prépare et expédie sa propre sous-commande.</div></div></div>
+            <div class="accordion-item"><h2 class="accordion-header"><button class="accordion-button collapsed small" type="button" data-bs-toggle="collapse" data-bs-target="#f3">Quels moyens de paiement ?</button></h2>
+              <div id="f3" class="accordion-collapse collapse" data-bs-parent="#faq"><div class="accordion-body">Orange Money, MTN MoMo, Moov Money, Wave, carte bancaire et paiement à la livraison selon les zones.</div></div></div>
+          </div>
+        </div></div>
+      </div>
+
+      <div class="col-lg-8">
+        <div class="card">
+          <div class="card-header">Formulaire de contact</div>
+          <div class="card-body">
+            <!-- Django : POST {% url 'support:contact' %} — crée une Reclamation / DemandeContact -->
+            <form class="needs-validation row g-3" novalidate method="post" data-demo-message="Votre demande a bien été envoyée. Référence : REC-0704. Réponse sous 24 h." data-demo-reset>
+              <div class="col-md-6"><label class="form-label" for="c-nom">Nom complet</label><input class="form-control" id="c-nom" name="nom" required autocomplete="name"><div class="invalid-feedback">Champ obligatoire.</div></div>
+              <div class="col-md-6"><label class="form-label" for="c-email">E-mail</label><input class="form-control" id="c-email" name="email" type="email" required autocomplete="email"><div class="invalid-feedback">E-mail invalide.</div></div>
+              <div class="col-md-6">
+                <label class="form-label" for="c-type">Type de demande</label>
+                <select class="form-select" id="c-type" name="type" required>
+                  <option value="">Choisir…</option><option value="question">Question générale</option><option value="commande">Problème de commande</option>
+                  <option value="livraison">Livraison</option><option value="paiement">Paiement / remboursement</option>
+                  <option value="produit">Produit non conforme / endommagé</option><option value="litige">Litige avec un vendeur</option><option value="vendeur">Devenir vendeur</option>
+                </select>
+                <div class="invalid-feedback">Choisissez un type.</div>
+              </div>
+              <div class="col-md-6"><label class="form-label" for="c-ref">N° de commande (si applicable)</label><input class="form-control" id="c-ref" name="commande_reference" placeholder="IM-2026-000000"></div>
+              <div class="col-12"><label class="form-label" for="c-sujet">Sujet</label><input class="form-control" id="c-sujet" name="sujet" required maxlength="150"><div class="invalid-feedback">Indiquez un sujet.</div></div>
+              <div class="col-12"><label class="form-label" for="c-msg">Message</label><textarea class="form-control" id="c-msg" name="message" rows="5" required minlength="20"></textarea><div class="invalid-feedback">Décrivez votre demande (20 caractères minimum).</div></div>
+              <div class="col-12"><label class="form-label" for="c-file">Pièce jointe (photo, reçu…)</label><input class="form-control" type="file" id="c-file" name="piece_jointe" accept="image/*,.pdf"></div>
+              <div class="col-12"><button class="btn btn-primary px-4" type="submit"><i class="bi bi-send me-2"></i>Envoyer</button></div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../static/js/data.js"></script>
+  <script src="../static/js/app.js"></script>
+</body>
+</html>

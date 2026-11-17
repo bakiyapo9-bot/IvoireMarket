@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Administration — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="admin" data-active="dashboard" data-title="Tableau de bord" data-subtitle="Vue d'ensemble de la plateforme">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="row g-3" id="stats"></div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-xl-8">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between">Volume de ventes & commissions <small class="text-muted fw-normal">millions FCFA</small></div>
+            <div class="card-body"><div class="chart-box"><canvas id="chart" role="img" aria-label="Ventes et commissions"></canvas></div></div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card h-100">
+            <div class="card-header"><i class="bi bi-list-check text-orange me-1"></i>À traiter</div>
+            <div class="list-group list-group-flush" id="todo"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-xl-8">
+          <div class="card table-card">
+            <div class="card-header d-flex justify-content-between"><span>Dernières commandes</span><a href="commandes.html" class="small fw-normal">Toutes</a></div>
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>Référence</th><th>Client</th><th>Boutiques</th><th>Total</th><th>Paiement</th><th>Statut</th></tr></thead>
+                <tbody id="orders"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card h-100">
+            <div class="card-header">Top boutiques (CA)</div>
+            <ul class="list-group list-group-flush" id="top-shops"></ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const subs = IM.subOrders().filter((o) => o.sc.statut !== "cancelled");
+    const gmv = subs.reduce((t, o) => t + o.montant, 0);
+    const com = subs.reduce((t, o) => t + o.commission, 0);
+    const stat = (icon, cls, value, label, extra = "") => `<div class="col-sm-6 col-xl-3"><div class="card stat-card"><div class="stat-icon ${cls}"><i class="bi ${icon}"></i></div><div><div class="stat-value">${value}</div><div class="stat-label">${label}</div>${extra}</div></div></div>`;
+    document.getElementById("stats").innerHTML =
+      stat("bi-cash-coin", "icon-orange", fmt(gmv), "Volume de ventes (mois)", '<small class="text-green"><i class="bi bi-arrow-up"></i> +9 %</small>') +
+      stat("bi-percent", "icon-green", fmt(com), "Commissions perçues") +
+      stat("bi-receipt", "icon-blue", D.commandes.length, "Commandes (mois)") +
+      stat("bi-people", "icon-purple", "2 418", "Utilisateurs inscrits", '<small class="text-muted">dont 7 vendeurs</small>');
+
+    new Chart(document.getElementById("chart"), {
+      data: {
+        labels: D.stats.mois,
+        datasets: [
+          { type: "bar", label: "Ventes", data: D.stats.ventes_plateforme, backgroundColor: "#f77f00", borderRadius: 6, maxBarThickness: 30, yAxisID: "y" },
+          { type: "line", label: "Commissions", data: D.stats.commissions_plateforme, borderColor: "#009e60", backgroundColor: "#009e60", tension: 0.35, yAxisID: "y1" },
+        ],
+      },
+      options: { maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+        scales: { y: { beginAtZero: true, grid: { color: "#eef0f3" } }, y1: { beginAtZero: true, position: "right", grid: { display: false } }, x: { grid: { display: false } } } },
+    });
+
+    const todo = [
+      ["bi-shop", "Boutiques à valider", D.boutiques.filter((b) => b.statut === "pending").length, "boutiques.html?statut=pending", "warning"],
+      ["bi-box-seam", "Produits à modérer", D.produits.filter((p) => p.statut === "pending").length, "produits.html", "warning"],
+      ["bi-flag", "Avis signalés", D.avis.filter((a) => a.signale).length, "avis.html", "danger"],
+      ["bi-arrow-return-left", "Remboursements en attente", D.remboursements.filter((r) => r.statut === "pending").length, "paiements.html#refunds", "danger"],
+      ["bi-x-octagon", "Paiements échoués", D.transactions.filter((t) => t.statut === "failed").length, "paiements.html", "secondary"],
+      ["bi-wallet2", "Versements vendeurs à effectuer", D.versements.filter((v) => v.statut === "pending").length, "commissions.html", "info"],
+      ["bi-headset", "Réclamations ouvertes", D.reclamations.filter((r) => r.statut !== "done").length, "../support/dashboard.html", "primary"],
+    ];
+    document.getElementById("todo").innerHTML = todo.map(([i, l, n, h, c]) => `
+      <a href="${h}" class="list-group-item list-group-item-action d-flex align-items-center gap-2 small"><i class="bi ${i} text-${c}"></i>${l}
+        <span class="badge rounded-pill bg-${n ? c : "light text-muted"} ms-auto">${n}</span></a>`).join("");
+
+    document.getElementById("orders").innerHTML = [...D.commandes].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map((c) => `
+      <tr><td class="fw-semibold">${esc(c.reference)}</td><td>${esc(c.client)}</td><td>${c.sous_commandes.length}</td><td>${fmt(IM.orderTotal(c))}</td>
+        <td>${IM.statusBadge(c.paiement_statut, { paid: "Payé", pending: "En attente", failed: "Échoué", refunded: "Remboursé" }[c.paiement_statut])}</td><td>${IM.statusBadge(c.statut)}</td></tr>`).join("");
+
+    const byShop = {};
+    subs.forEach((o) => (byShop[o.boutique.id] = (byShop[o.boutique.id] || 0) + o.montant));
+    document.getElementById("top-shops").innerHTML = Object.entries(byShop).sort((a, b) => b[1] - a[1]).map(([id, v]) => {
+      const s = IM.getShop(id);
+      return `<li class="list-group-item d-flex align-items-center gap-2">${IM.shopLogo(s).replace("shop-logo", "shop-logo avatar")}
+        <div class="flex-fill small"><div class="fw-semibold">${esc(s.nom)}</div><span class="text-muted">${esc(s.commune)}</span></div><strong class="small">${fmt(v)}</strong></li>`;
+    }).join("");
+  </script>
+</body>
+</html>

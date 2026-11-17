@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tableau de bord vendeur — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body class="dash-body" data-root="../" data-role="vendeur" data-active="dashboard" data-title="Tableau de bord" data-subtitle="Bienvenue, Kouadio — voici l'activité d'Abidjan Tech">
+  <aside id="dash-sidebar"></aside>
+  <div class="dash-main">
+    <header id="dash-topbar"></header>
+    <main class="dash-content">
+      <div class="row g-3" id="stats"></div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-xl-8">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">Ventes des 12 derniers mois <small class="text-muted fw-normal">en milliers de FCFA</small></div>
+            <div class="card-body"><div class="chart-box"><canvas id="salesChart" aria-label="Graphique des ventes" role="img"></canvas></div></div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card h-100">
+            <div class="card-header d-flex justify-content-between"><span><i class="bi bi-exclamation-triangle text-warning me-1"></i>Alertes stock</span><a href="produits.html" class="small fw-normal">Gérer</a></div>
+            <ul class="list-group list-group-flush" id="stock-alerts"></ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-xl-8">
+          <div class="card table-card">
+            <div class="card-header d-flex justify-content-between"><span>Dernières sous-commandes</span><a href="commandes.html" class="small fw-normal">Tout voir</a></div>
+            <div class="card-body table-responsive">
+              <table class="table table-hover mb-0">
+                <thead><tr><th>N°</th><th>Client</th><th>Date</th><th>Montant</th><th>Statut</th><th></th></tr></thead>
+                <tbody id="recent"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="col-xl-4">
+          <div class="card h-100">
+            <div class="card-header">Meilleures ventes</div>
+            <ul class="list-group list-group-flush" id="top"></ul>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    const { D, esc, fmt } = IM;
+    const SHOP_ID = 1; // Django : request.user.boutique
+    const orders = IM.subOrders(SHOP_ID);
+    const products = D.produits.filter((p) => p.boutique_id === SHOP_ID);
+    const valid = orders.filter((o) => o.sc.statut !== "cancelled");
+    const ca = valid.reduce((t, o) => t + o.montant, 0);
+    const net = valid.reduce((t, o) => t + o.net, 0);
+    const pending = orders.filter((o) => ["pending", "confirmed", "processing"].includes(o.sc.statut)).length;
+
+    const stat = (icon, cls, value, label, extra = "") => `
+      <div class="col-sm-6 col-xl-3"><div class="card stat-card"><div class="stat-icon ${cls}"><i class="bi ${icon}"></i></div>
+        <div><div class="stat-value">${value}</div><div class="stat-label">${label}</div>${extra}</div></div></div>`;
+    document.getElementById("stats").innerHTML =
+      stat("bi-graph-up-arrow", "icon-orange", fmt(ca), "Chiffre d'affaires (mois)", '<small class="text-green"><i class="bi bi-arrow-up"></i> +12 % vs octobre</small>') +
+      stat("bi-wallet2", "icon-green", fmt(net), "Revenu net (après 5 %)") +
+      stat("bi-receipt", "icon-blue", pending, "Commandes à traiter", `<a href="commandes.html" class="small">Traiter →</a>`) +
+      stat("bi-box-seam", "icon-purple", products.filter((p) => p.statut === "active").length, "Produits en ligne");
+
+    new Chart(document.getElementById("salesChart"), {
+      type: "bar",
+      data: { labels: D.stats.mois, datasets: [{ label: "Ventes", data: D.stats.ventes_vendeur, backgroundColor: "#f77f00", borderRadius: 6, maxBarThickness: 32 }] },
+      options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { color: "#eef0f3" } }, x: { grid: { display: false } } } },
+    });
+
+    const low = products.filter((p) => p.stock <= 5);
+    document.getElementById("stock-alerts").innerHTML = low.length ? low.map((p) => `
+      <li class="list-group-item d-flex gap-2 align-items-center">${IM.thumb(p, "xs")}
+        <div class="flex-fill small min-w-0"><div class="text-truncate">${esc(p.nom)}</div>
+        <span class="${p.stock === 0 ? "text-danger" : "text-warning"} fw-semibold">${p.stock === 0 ? "Rupture de stock" : `Plus que ${p.stock}`}</span></div>
+        <a href="produit-form.html?id=${p.id}" class="btn btn-sm btn-light">Réappro.</a></li>`).join("")
+      : `<li class="list-group-item text-muted small">Aucune alerte.</li>`;
+
+    document.getElementById("recent").innerHTML = orders.slice(0, 5).map((o) => `
+      <tr><td class="fw-semibold">#${o.sc.id}</td><td>${esc(o.commande.client)}</td><td class="small text-muted">${esc(o.commande.date)}</td>
+        <td>${fmt(o.montant)}</td><td>${IM.statusBadge(o.sc.statut)}</td>
+        <td class="text-end"><a href="commande.html?id=${o.sc.id}" class="btn btn-sm btn-light">Voir</a></td></tr>`).join("");
+
+    document.getElementById("top").innerHTML = [...products].sort((a, b) => b.ventes - a.ventes).slice(0, 4).map((p, i) => `
+      <li class="list-group-item d-flex gap-2 align-items-center"><span class="fw-bold text-muted" style="width:18px">${i + 1}</span>${IM.thumb(p, "xs")}
+        <div class="flex-fill small min-w-0"><div class="text-truncate">${esc(p.nom)}</div><span class="text-muted">${p.ventes} ventes</span></div>
+        <strong class="small">${fmt(IM.price(p))}</strong></li>`).join("");
+  </script>
+</body>
+</html>

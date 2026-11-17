@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Devenir vendeur — IvoireMarket</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link href="../../static/css/style.css" rel="stylesheet">
+</head>
+<body data-root="../">
+  <header id="site-header"></header>
+
+  <main class="container py-4">
+    <div class="col-lg-9 mx-auto">
+      <div class="text-center mb-4">
+        <h1 class="h3 fw-bold">Ouvrez votre boutique sur IvoireMarket</h1>
+        <p class="text-muted">Inscription gratuite · Commission de 5 % uniquement sur les ventes · Validation sous 48 h</p>
+      </div>
+
+      <div class="checkout-steps mb-4" id="steps">
+        <div class="step active"><div class="dot">1</div>Compte vendeur</div>
+        <div class="step"><div class="dot">2</div>Ma boutique</div>
+        <div class="step"><div class="dot">3</div>Justificatifs</div>
+      </div>
+
+      <!--
+        Django : POST multipart {% url 'comptes:inscription_vendeur' %} (enctype="multipart/form-data").
+        Crée l'utilisateur (role="vendeur", statut="pending") + la Boutique (statut="pending").
+        Le vendeur ne peut publier qu'après validation par l'administrateur.
+      -->
+      <form class="card needs-validation" novalidate method="post" enctype="multipart/form-data" id="seller-form">
+        <div class="card-body p-4">
+          <!-- Étape 1 -->
+          <fieldset data-step="1">
+            <legend class="h5 fw-semibold mb-3">Informations du vendeur</legend>
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label" for="v-prenom">Prénom</label><input class="form-control" id="v-prenom" name="first_name" required autocomplete="given-name"><div class="invalid-feedback">Obligatoire.</div></div>
+              <div class="col-md-6"><label class="form-label" for="v-nom">Nom</label><input class="form-control" id="v-nom" name="last_name" required autocomplete="family-name"><div class="invalid-feedback">Obligatoire.</div></div>
+              <div class="col-md-6"><label class="form-label" for="v-email">E-mail professionnel</label><input class="form-control" type="email" id="v-email" name="email" required autocomplete="email"><div class="invalid-feedback">E-mail invalide.</div></div>
+              <div class="col-md-6"><label class="form-label" for="v-tel">Téléphone</label><div class="input-group"><span class="input-group-text">+225</span><input class="form-control" type="tel" id="v-tel" name="telephone" required pattern="[0-9 ]{10,14}"><div class="invalid-feedback">Numéro à 10 chiffres.</div></div></div>
+              <div class="col-md-6"><label class="form-label" for="v-pwd">Mot de passe</label><input class="form-control" type="password" id="v-pwd" name="password1" required minlength="8" autocomplete="new-password" data-password><div class="invalid-feedback">8 caractères minimum.</div></div>
+              <div class="col-md-6"><label class="form-label" for="v-pwd2">Confirmation</label><input class="form-control" type="password" id="v-pwd2" name="password2" required autocomplete="new-password" data-password-confirm><div class="invalid-feedback">Les mots de passe ne correspondent pas.</div></div>
+              <div class="col-md-6">
+                <label class="form-label" for="v-statut">Statut juridique</label>
+                <select class="form-select" id="v-statut" name="statut_juridique" required>
+                  <option value="">Choisir…</option><option value="particulier">Particulier / informel</option><option value="entreprise_individuelle">Entreprise individuelle</option><option value="sarl">SARL / SA</option><option value="cooperative">Coopérative</option>
+                </select><div class="invalid-feedback">Obligatoire.</div>
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- Étape 2 -->
+          <fieldset data-step="2" class="d-none">
+            <legend class="h5 fw-semibold mb-3">Votre boutique</legend>
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label" for="b-nom">Nom de la boutique</label><input class="form-control" id="b-nom" name="boutique_nom" required maxlength="80"><div class="invalid-feedback">Obligatoire.</div></div>
+              <div class="col-md-6"><label class="form-label" for="b-ville">Ville</label>
+                <select class="form-select" id="b-ville" name="ville" required><option value="">Choisir…</option><option>Abidjan</option><option>Bouaké</option><option>Yamoussoukro</option><option>San-Pédro</option><option>Korhogo</option><option>Daloa</option><option>Man</option><option>Autre</option></select>
+                <div class="invalid-feedback">Obligatoire.</div></div>
+              <div class="col-md-6"><label class="form-label" for="b-commune">Commune / quartier</label><input class="form-control" id="b-commune" name="commune" required><div class="invalid-feedback">Obligatoire.</div></div>
+              <div class="col-md-6"><label class="form-label" for="b-tel">Téléphone de la boutique</label><input class="form-control" type="tel" id="b-tel" name="boutique_telephone"></div>
+              <div class="col-12"><label class="form-label" for="b-desc">Description</label><textarea class="form-control" id="b-desc" name="description" rows="3" required minlength="30" placeholder="Présentez vos produits, votre savoir-faire…"></textarea><div class="invalid-feedback">30 caractères minimum.</div></div>
+              <div class="col-12">
+                <label class="form-label d-block">Catégories de produits</label>
+                <div class="d-flex flex-wrap gap-2" id="b-cats"></div>
+              </div>
+              <div class="col-md-6"><label class="form-label" for="b-logo">Logo</label><input class="form-control" type="file" id="b-logo" name="logo" accept="image/*" data-preview="#logo-preview"><div class="preview-grid d-flex gap-2 mt-2" id="logo-preview"></div></div>
+              <div class="col-md-6"><label class="form-label" for="b-banner">Bannière</label><input class="form-control" type="file" id="b-banner" name="banniere" accept="image/*" data-preview="#banner-preview"><div class="preview-grid d-flex gap-2 mt-2" id="banner-preview"></div></div>
+            </div>
+          </fieldset>
+
+          <!-- Étape 3 -->
+          <fieldset data-step="3" class="d-none">
+            <legend class="h5 fw-semibold mb-3">Justificatifs & versements</legend>
+            <div class="row g-3">
+              <div class="col-md-6"><label class="form-label" for="d-cni">Pièce d'identité (CNI / passeport)</label><input class="form-control" type="file" id="d-cni" name="piece_identite" accept="image/*,.pdf" required><div class="invalid-feedback">Obligatoire.</div></div>
+              <div class="col-md-6"><label class="form-label" for="d-rccm">Registre du commerce (RCCM) <span class="text-muted small">si entreprise</span></label><input class="form-control" type="file" id="d-rccm" name="rccm" accept="image/*,.pdf"></div>
+              <div class="col-md-6">
+                <label class="form-label" for="d-pay">Mode de versement de vos revenus</label>
+                <select class="form-select" id="d-pay" name="mode_versement" required><option value="">Choisir…</option><option value="orange">Orange Money</option><option value="mtn">MTN MoMo</option><option value="moov">Moov Money</option><option value="wave">Wave</option><option value="virement">Virement bancaire</option></select>
+                <div class="invalid-feedback">Obligatoire.</div>
+              </div>
+              <div class="col-md-6"><label class="form-label" for="d-compte">Numéro / IBAN de versement</label><input class="form-control" id="d-compte" name="compte_versement" required><div class="invalid-feedback">Obligatoire.</div></div>
+              <div class="col-12">
+                <div class="alert bg-orange-soft border-0 small mb-2"><i class="bi bi-info-circle text-orange me-1"></i>
+                  Une commission de <strong>5 %</strong> est prélevée sur chaque vente. Exemple : pour une vente de 50 000 FCFA, la commission est de 2 500 FCFA et votre revenu de 47 500 FCFA.</div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" id="d-cgv" required><label class="form-check-label small" for="d-cgv">J'accepte les <a href="#">conditions vendeurs</a> et la grille de commissions.</label><div class="invalid-feedback">Obligatoire.</div></div>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-between p-3">
+          <button class="btn btn-light" type="button" id="prev" disabled><i class="bi bi-arrow-left me-1"></i>Précédent</button>
+          <button class="btn btn-primary" type="button" id="next">Suivant <i class="bi bi-arrow-right ms-1"></i></button>
+          <button class="btn btn-success d-none" type="submit" id="submit"><i class="bi bi-send me-1"></i>Envoyer ma demande</button>
+        </div>
+      </form>
+    </div>
+  </main>
+
+  <!-- Modal de fin -->
+  <div class="modal fade" id="doneModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content text-center p-4">
+    <div class="display-4 text-green"><i class="bi bi-hourglass-split"></i></div>
+    <h5 class="mt-2">Demande envoyée !</h5>
+    <p class="text-muted small">Votre boutique est <strong>en attente de validation</strong> par l'équipe IvoireMarket. Vous recevrez une notification dès qu'elle sera activée (48 h maximum).</p>
+    <a href="../vendeur/dashboard.html" class="btn btn-primary">Accéder à mon espace vendeur</a>
+  </div></div></div>
+
+  <div id="site-footer"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../static/js/data.js"></script>
+  <script src="../../static/js/app.js"></script>
+  <script>
+    document.getElementById("b-cats").innerHTML = IM.D.categories.filter((c) => c.actif).map((c) => `
+      <div class="variant-option"><input type="checkbox" name="categories" value="${c.id}" id="bc-${c.id}"><label for="bc-${c.id}"><i class="bi ${c.icone} me-1"></i>${c.nom}</label></div>`).join("");
+
+    const form = document.getElementById("seller-form");
+    const sets = [...form.querySelectorAll("fieldset[data-step]")];
+    const stepsEl = document.querySelectorAll("#steps .step");
+    let step = 0;
+    function show(i) {
+      step = i;
+      sets.forEach((f, j) => f.classList.toggle("d-none", j !== i));
+      stepsEl.forEach((s, j) => { s.classList.toggle("active", j === i); s.classList.toggle("done", j < i); s.querySelector(".dot").innerHTML = j < i ? '<i class="bi bi-check"></i>' : j + 1; });
+      document.getElementById("prev").disabled = i === 0;
+      document.getElementById("next").classList.toggle("d-none", i === sets.length - 1);
+      document.getElementById("submit").classList.toggle("d-none", i !== sets.length - 1);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function validStep() {
+      const pwd = form.querySelector("[data-password]"), conf = form.querySelector("[data-password-confirm]");
+      conf.setCustomValidity(pwd.value === conf.value ? "" : "Les mots de passe ne correspondent pas.");
+      const fields = [...sets[step].querySelectorAll("input, select, textarea")];
+      const ok = fields.every((f) => f.checkValidity());
+      sets[step].classList.toggle("was-validated", !ok);
+      if (!ok) fields.find((f) => !f.checkValidity())?.focus();
+      return ok;
+    }
+    document.getElementById("next").addEventListener("click", () => { if (validStep()) show(step + 1); });
+    document.getElementById("prev").addEventListener("click", () => show(step - 1));
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) return;
+      new bootstrap.Modal("#doneModal").show();
+    });
+  </script>
+</body>
+</html>
